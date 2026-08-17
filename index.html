@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>法考真金题</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f5f5f0;--surface:#fff;--surface2:#fafaf7;--surface3:#f0f0eb;
+  --text:#1a1a1a;--text2:#4a4a4a;--text3:#6b7280;
+  --accent:#2563eb;--accent-light:#dbeafe;--accent-dark:#1d4ed8;
+  --success:#059669;--success-light:#d1fae5;
+  --danger:#dc2626;--danger-light:#fee2e2;
+  --warning:#d97706;--warning-light:#fef3c7;
+  --border:#e5e5e0;--radius:12px;--radius-sm:8px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --tab-height:56px;
+  --font-size:15px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+}
+:root[data-theme="dark"]{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#334155;--surface3:#475569;
+  --text:#e2e8f0;--text2:#cbd5e1;--text3:#94a3b8;
+  --accent:#3b82f6;--accent-light:#1e3a5f;--accent-dark:#60a5fa;
+  --success:#34d399;--success-light:#064e3b;
+  --danger:#f87171;--danger-light:#7f1d1d;
+  --warning:#fbbf24;--warning-light:#78350f;
+  --border:#334155;--shadow:0 1px 3px rgba(0,0,0,.3);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f172a;--surface:#1e293b;--surface2:#334155;--surface3:#475569;
+    --text:#e2e8f0;--text2:#cbd5e1;--text3:#94a3b8;
+    --accent:#3b82f6;--accent-light:#1e3a5f;--accent-dark:#60a5fa;
+    --success:#34d399;--success-light:#064e3b;
+    --danger:#f87171;--danger-light:#7f1d1d;
+    --warning:#fbbf24;--warning-light:#78350f;
+    --border:#334155;--shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+}
+:root[data-fs="small"]{--font-size:13px}
+:root[data-fs="large"]{--font-size:17px}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:var(--font-size);display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* Tab Bar */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;height:var(--tab-height);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding-bottom:var(--safe-bottom);z-index:100}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0;cursor:pointer;color:var(--text3);transition:color .15s;-webkit-user-select:none;user-select:none}
+.tab-item.active{color:var(--accent)}
+.tab-item .tab-icon{font-size:20px;line-height:1}
+.tab-item .tab-label{font-size:10px;font-weight:600}
+
+/* Screen */
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden;padding-bottom:var(--tab-height)}
+.screen.active{display:flex}
+.screen-header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.screen-header .back-btn{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.screen-header .back-btn:active{background:var(--surface3)}
+.screen-header .title{font-size:17px;font-weight:700;flex:1}
+.screen-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ===== HOME ===== */
+.subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}
+.subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s}
+.subject-card:active{transform:scale(.97)}
+.subject-card .s-name{font-size:15px;font-weight:700;margin-bottom:8px}
+.subject-card .s-stats{display:flex;flex-direction:column;gap:3px}
+.subject-card .s-stat{display:flex;justify-content:space-between;font-size:11px;color:var(--text3)}
+.subject-card .s-stat .val{font-weight:600;color:var(--text2)}
+.subject-card .s-bar{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.subject-card .s-bar-fill{height:100%;background:var(--accent);border-radius:2px}
+.subject-card .empty{color:var(--text3);font-size:12px;text-align:center;padding:8px 0}
+
+/* ===== CHAPTER ===== */
+.chapter-list{padding:12px}
+.chapter-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer}
+.chapter-item:active{transform:scale(.98)}
+.chapter-item .ch-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.chapter-item .ch-stats{display:flex;gap:12px;font-size:11px;color:var(--text3)}
+.chapter-item .ch-stats .val{font-weight:600;color:var(--text2)}
+.chapter-actions{display:flex;gap:8px;margin-top:8px}
+.chapter-btn{flex:1;height:32px;border-radius:16px;border:none;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px}
+.chapter-btn.primary{background:var(--accent);color:#fff}
+.chapter-btn.secondary{background:var(--accent-light);color:var(--accent)}
+.chapter-btn:active{transform:scale(.95)}
+.full-random-btn{width:100%;height:44px;border-radius:22px;border:none;font-size:14px;font-weight:600;background:var(--accent);color:#fff;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.full-random-btn:active{transform:scale(.97)}
+
+/* Filter */
+.filter-bar{display:flex;gap:6px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.filter-chip{padding:4px 12px;border-radius:12px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text3);transition:all .15s;white-space:nowrap}
+.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filter-chip:active{transform:scale(.95)}
+
+/* ===== REVIEW DASHBOARD ===== */
+.review-body{padding:12px}
+.review-hero{text-align:center;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px}
+.review-hero .rh-today{font-size:48px;font-weight:800;color:var(--danger)}
+.review-hero .rh-label{font-size:13px;color:var(--text3);margin-top:4px}
+.review-hero .rh-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.review-start-btn{width:100%;height:48px;border-radius:24px;border:none;font-size:16px;font-weight:700;background:var(--danger);color:#fff;cursor:pointer;margin-top:12px}
+.review-start-btn:active{transform:scale(.97)}
+.review-start-btn:disabled{opacity:.5}
+
+.review-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.review-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+.review-stat-card .rsc-val{font-size:20px;font-weight:800}
+.review-stat-card .rsc-label{font-size:10px;color:var(--text3);margin-top:2px}
+
+.review-schedule{margin-bottom:12px}
+.review-schedule-title{font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)}
+.schedule-day{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:4px}
+.schedule-day.today{border-color:var(--danger);background:var(--danger-light)}
+.schedule-day .sd-date{font-size:12px;color:var(--text3);width:50px;flex-shrink:0}
+.schedule-day .sd-label{font-size:12px;font-weight:600;flex:1}
+.schedule-day .sd-count{font-size:14px;font-weight:700}
+
+/* ===== QUIZ ===== */
+.quiz-top{padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.quiz-top .quiz-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.quiz-top .quiz-meta .progress-text{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums}
+.quiz-top .quiz-meta .chapter-name{font-size:11px;color:var(--accent);font-weight:600}
+.quiz-top .quiz-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.quiz-top .quiz-bar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.quiz-body{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+
+.q-type-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.q-type-tag{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:var(--accent-light);color:var(--accent)}
+.q-type-tag.multi{background:var(--warning-light);color:var(--warning)}
+.q-type-tag.uncertain{background:var(--danger-light);color:var(--danger)}
+.q-source{font-size:11px;color:var(--text3)}
+.q-answer-hint{font-size:11px;color:var(--text3);margin-left:auto}
+
+.q-text{font-size:16px;line-height:1.8;font-weight:500;margin-bottom:16px;white-space:pre-wrap}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;font-size:var(--font-size);line-height:1.6}
+.q-option:active{transform:scale(.98)}
+.q-option .opt-mark{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px;transition:all .15s}
+.q-option.selected{border-color:var(--accent);background:var(--accent-light)}
+.q-option.selected .opt-mark{background:var(--accent);color:#fff;border-color:var(--accent)}
+.q-option.correct{border-color:var(--success);background:var(--success-light)}
+.q-option.correct .opt-mark{background:var(--success);color:#fff;border-color:var(--success)}
+.q-option.wrong{border-color:var(--danger);background:var(--danger-light)}
+.q-option.wrong .opt-mark{background:var(--danger);color:#fff;border-color:var(--danger)}
+.q-option.locked{pointer-events:none}
+.q-option .unsure-btn{margin-left:auto;padding:2px 6px;border-radius:8px;border:1px solid var(--border);font-size:10px;color:var(--text3);cursor:pointer;background:var(--surface);flex-shrink:0}
+.q-option .unsure-btn.active{border-color:var(--warning);color:var(--warning);background:var(--warning-light)}
+
+.q-submit-btn{width:100%;height:48px;border-radius:24px;border:none;font-size:15px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer;margin-bottom:12px}
+.q-submit-btn:active{transform:scale(.97)}
+.q-submit-btn:disabled{opacity:.5;pointer-events:none}
+.q-next-btn{width:100%;height:48px;border-radius:24px;border:none;font-size:15px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer;margin-top:12px;display:none}
+.q-next-btn.show{display:block}
+.q-next-btn:active{transform:scale(.97)}
+
+.q-explanation{margin-top:12px;padding:14px;background:var(--surface2);border-radius:var(--radius);border-left:3px solid var(--accent);display:none}
+.q-explanation.show{display:block}
+.q-explanation .exp-label{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:1px}
+.q-explanation .exp-text{font-size:14px;line-height:1.8;white-space:pre-wrap}
+.q-keypoint{margin-top:8px;padding:10px 14px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius-sm);cursor:pointer}
+.q-keypoint .kp-label{font-size:12px;font-weight:600;color:var(--text3)}
+.q-keypoint .kp-tags{font-size:12px;color:var(--accent);margin-top:4px;display:none}
+.q-keypoint.open .kp-tags{display:block}
+
+/* Review level indicator */
+.q-review-indicator{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text3)}
+.q-review-dots{display:flex;gap:3px}
+.q-review-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.q-review-dot.filled{background:var(--accent)}
+.q-review-dot.max{background:var(--success)}
+
+/* ===== WRONG ===== */
+.wrong-filters{display:flex;gap:6px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.wrong-list{padding:12px}
+.wrong-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer}
+.wrong-item:active{transform:scale(.98)}
+.wrong-item .wq{font-size:14px;line-height:1.6;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wrong-item .wmeta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)}
+.wrong-item .wmeta .tag{padding:1px 6px;border-radius:8px;background:var(--surface3)}
+.wrong-item .wmeta .wrong-count{color:var(--danger);font-weight:600}
+
+/* ===== STATS ===== */
+.stats-body{padding:16px}
+.stats-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.stats-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+.stats-card .sc-val{font-size:24px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.stats-card .sc-label{font-size:11px;color:var(--text3);margin-top:2px}
+.stats-section{margin-bottom:16px}
+.stats-section-title{font-size:14px;font-weight:700;margin-bottom:8px}
+.bar-chart{display:flex;flex-direction:column;gap:6px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{width:60px;font-size:12px;color:var(--text3);text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:20px;background:var(--surface3);border-radius:10px;overflow:hidden}
+.bar-fill{height:100%;border-radius:10px;transition:width .5s}
+.bar-val{font-size:11px;font-weight:600;width:40px;text-align:left;flex-shrink:0}
+
+/* Daily log */
+.daily-log{margin-top:16px}
+.daily-log-title{font-size:14px;font-weight:700;margin-bottom:8px}
+.daily-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px}
+.daily-item .di-date{font-size:12px;color:var(--text3);width:70px}
+.daily-item .di-info{flex:1;font-size:12px}
+.daily-item .di-count{font-size:14px;font-weight:700;color:var(--accent)}
+
+/* ===== SETTINGS ===== */
+.settings-body{padding:16px}
+.setting-group{margin-bottom:16px}
+.setting-group-title{font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;letter-spacing:1px}
+.setting-item{display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer}
+.setting-item:active{background:var(--surface2)}
+.setting-item .si-label{font-size:14px;font-weight:500}
+.setting-item .si-value{font-size:13px;color:var(--text3)}
+.setting-btn{width:100%;height:44px;border-radius:var(--radius);border:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.setting-btn:active{background:var(--surface2)}
+.setting-btn.danger{border-color:var(--danger);color:var(--danger)}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-height:70vh;padding:20px 16px calc(20px + var(--safe-bottom));overflow-y:auto}
+
+.quiz-summary{text-align:center;padding:20px 16px}
+.quiz-summary .qs-circle{width:120px;height:120px;border-radius:50%;margin:20px auto;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.quiz-summary .qs-circle .pct{font-size:36px;font-weight:800}
+.quiz-summary .qs-circle .label{font-size:12px;color:var(--text3)}
+.quiz-summary .qs-details{display:flex;justify-content:center;gap:24px;margin:16px 0;font-size:14px}
+.quiz-summary .qs-details .item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.quiz-summary .qs-details .num{font-size:24px;font-weight:700}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px}
+.empty-state .es-text{font-size:14px}
+
+::-webkit-scrollbar{width:0;height:0}
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<nav class="tab-bar">
+  <div class="tab-item active" data-tab="home" onclick="switchTab('home')"><span class="tab-icon">📚</span><span class="tab-label">首页</span></div>
+  <div class="tab-item" data-tab="review" onclick="switchTab('review')"><span class="tab-icon">🔁</span><span class="tab-label">复习</span></div>
+  <div class="tab-item" data-tab="wrong" onclick="switchTab('wrong')"><span class="tab-icon">❌</span><span class="tab-label">错题</span></div>
+  <div class="tab-item" data-tab="stats" onclick="switchTab('stats')"><span class="tab-icon">📊</span><span class="tab-label">统计</span></div>
+  <div class="tab-item" data-tab="settings" onclick="switchTab('settings')"><span class="tab-icon">⚙️</span><span class="tab-label">设置</span></div>
+</nav>
+
+<!-- Screen: Home -->
+<div class="screen active" id="screen-home">
+  <div class="screen-header"><div class="title">法考<span style="color:var(--accent)">真金题</span></div></div>
+  <div class="screen-body" id="home-body"></div>
+</div>
+
+<!-- Screen: Chapters -->
+<div class="screen" id="screen-chapters">
+  <div class="screen-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="title" id="ch-subject-title">民诉</div>
+  </div>
+  <div class="filter-bar" id="ch-filter">
+    <div class="filter-chip active" data-filter="all" onclick="setFilter(this,'all')">全部</div>
+    <div class="filter-chip" data-filter="single" onclick="setFilter(this,'single')">单选</div>
+    <div class="filter-chip" data-filter="multi" onclick="setFilter(this,'multi')">多选</div>
+    <div class="filter-chip" data-filter="uncertain" onclick="setFilter(this,'uncertain')">不定项</div>
+  </div>
+  <div class="screen-body" id="chapters-body"></div>
+</div>
+
+<!-- Screen: Review -->
+<div class="screen" id="screen-review">
+  <div class="screen-header"><div class="title">复习计划</div></div>
+  <div class="screen-body"><div class="review-body" id="review-body"></div></div>
+</div>
+
+<!-- Screen: Quiz -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-top">
+    <div class="quiz-meta">
+      <span class="chapter-name" id="qz-chapter">第一章</span>
+      <span class="progress-text" id="qz-progress">1/20</span>
+    </div>
+    <div class="quiz-bar"><div class="quiz-bar-fill" id="qz-bar"></div></div>
+  </div>
+  <div class="quiz-body" id="quiz-body"></div>
+</div>
+
+<!-- Screen: Wrong -->
+<div class="screen" id="screen-wrong">
+  <div class="screen-header"><div class="title">错题本</div></div>
+  <div class="wrong-filters" id="wrong-filters">
+    <div class="filter-chip active" data-wf="all" onclick="setWrongFilter(this,'all')">全部错题</div>
+    <div class="filter-chip" data-wf="unsure" onclick="setWrongFilter(this,'unsure')">不确定</div>
+  </div>
+  <div class="screen-body" id="wrong-body"></div>
+</div>
+
+<!-- Screen: Stats -->
+<div class="screen" id="screen-stats">
+  <div class="screen-header"><div class="title">学习统计</div></div>
+  <div class="screen-body"><div class="stats-body" id="stats-body"></div></div>
+</div>
+
+<!-- Screen: Settings -->
+<div class="screen" id="screen-settings">
+  <div class="screen-header"><div class="title">设置</div></div>
+  <div class="screen-body"><div class="settings-body" id="settings-body"></div></div>
+</div>
+
+<!-- Summary Modal -->
+<div class="modal-overlay" id="summaryModal"><div class="modal-box"><div class="quiz-summary" id="summaryContent"></div>
+  <button class="setting-btn" style="background:var(--accent);color:#fff;border:none" onclick="closeSummary();startQuiz(lastQuizConfig)">再来一轮</button>
+  <button class="setting-btn" onclick="closeSummary()">返回首页</button>
+</div></div>
+
+<input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJSONFile(event)">
+
+<script>
+// ================================================================
+//  CONSTANTS & STATE
+// ================================================================
+const STORE_KEY = 'fakao_zhenti_v2';
+
+// 冲刺型遗忘曲线间隔（天）：等级0=当天, 1=1天, 2=3天, 3=5天, 4=7天, 5=已掌握
+const REVIEW_INTERVALS = [0, 1, 3, 5, 7, 999];
+const REVIEW_LABELS = ['重做', '1天后', '3天后', '5天后', '7天后', '已掌握'];
+
+let STORE = { version: 2, questions: [], records: {}, dailyLog: {}, settings: { theme: 'auto', fontSize: 'medium' } };
+let CURRENT_SUBJECT = null, CURRENT_FILTER = 'all', WRONG_FILTER = 'all';
+let QUIZ_QUESTIONS = [], QUIZ_INDEX = 0, QUIZ_SELECTED = [], QUIZ_SUBMITTED = false;
+let QUIZ_RESULT = { correct: 0, wrong: 0 };
+let lastQuizConfig = { mode: 'random', subject: null, chapter: null, filter: 'all', isReview: false };
+
+const SUBJECTS = {
+  ms:{name:'民诉',fullName:'民事诉讼法'},xf:{name:'刑法',fullName:'刑法'},
+  mf:{name:'民法',fullName:'民法'},xc:{name:'刑诉',fullName:'刑事诉讼法'},
+  xz:{name:'行政法',fullName:'行政法'},sj:{name:'商经知',fullName:'商经知'},
+  sg:{name:'三国法',fullName:'三国法'},ll:{name:'理论法',fullName:'理论法'},
+};
+
+// ================================================================
+//  DATA
+// ================================================================
+function loadStore(){
+  try{const d=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');if(d.version)STORE=d;}catch(e){}
+  applySettings();
+}
+function saveStore(){localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}
+
+function applySettings(){
+  const s=STORE.settings,root=document.documentElement;
+  if(s.theme&&s.theme!=='auto')root.setAttribute('data-theme',s.theme);
+  else if(s.theme==='auto')root.removeAttribute('data-theme');
+  if(s.fontSize)root.setAttribute('data-fs',s.fontSize);
+}
+
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+// ================================================================
+//  SPACED REPETITION ENGINE
+// ================================================================
+function getReviewRecord(qid){
+  if(!STORE.records[qid]) STORE.records[qid]={attempts:0,correct:0,lastAnswer:[],lastResult:false,unsureOpts:[],wrongCount:0,reviewLevel:0,nextReview:null,consecutiveCorrect:0};
+  return STORE.records[qid];
+}
+
+// 判断题目今天是否应该复习
+function isDueToday(qid){
+  const rec = STORE.records[qid];
+  if(!rec) return true; // 新题
+  if(rec.reviewLevel >= 5) return false; // 已掌握
+  if(!rec.nextReview) return true; // 没有下次复习日期
+  return rec.nextReview <= todayStr();
+}
+
+// 更新复习等级（答对/答错后调用）
+function updateReviewLevel(qid, isCorrect){
+  const rec = getReviewRecord(qid);
+  if(isCorrect){
+    rec.consecutiveCorrect = (rec.consecutiveCorrect||0) + 1;
+    // 连续答对2次 → 已掌握
+    if(rec.consecutiveCorrect >= 2 && rec.reviewLevel >= 3){
+      rec.reviewLevel = 5; // 已掌握
+      rec.nextReview = null;
+    } else {
+      rec.reviewLevel = Math.min(rec.reviewLevel + 1, 4);
+      rec.nextReview = addDays(todayStr(), REVIEW_INTERVALS[rec.reviewLevel]);
+    }
+  } else {
+    rec.consecutiveCorrect = 0;
+    rec.wrongCount = (rec.wrongCount||0) + 1;
+    rec.reviewLevel = 0; // 直接降回重做
+    rec.nextReview = todayStr(); // 今天重做
+  }
+  saveStore();
+}
+
+function addDays(dateStr, days){
+  if(days >= 999) return null;
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+// 获取今日待复习题目
+function getDueQuestions(subjectKey){
+  return STORE.questions.filter(q => {
+    if(subjectKey && q.subject !== subjectKey) return false;
+    return isDueToday(q.id);
+  });
+}
+
+// 获取未来7天复习计划
+function getWeekSchedule(subjectKey){
+  const schedule = [];
+  for(let i = 0; i <= 6; i++){
+    const date = addDays(todayStr(), i);
+    const qs = STORE.questions.filter(q => {
+      if(subjectKey && q.subject !== subjectKey) return false;
+      if(!STORE.records[q.id]) return i === 0; // 新题归入今天
+      const rec = STORE.records[q.id];
+      if(rec.reviewLevel >= 5) return false;
+      return rec.nextReview === date;
+    });
+    schedule.push({ date, count: qs.length, isToday: i === 0, label: i === 0 ? '今天' : i === 1 ? '明天' : (new Date(date).getMonth()+1) + '/' + new Date(date).getDate() });
+  }
+  return schedule;
+}
+
+// 记录每日做题
+function logDaily(count, correct){
+  const today = todayStr();
+  if(!STORE.dailyLog[today]) STORE.dailyLog[today] = { count: 0, correct: 0 };
+  STORE.dailyLog[today].count += count;
+  STORE.dailyLog[today].correct += correct;
+  saveStore();
+}
+
+// ================================================================
+//  TAB NAVIGATION
+// ================================================================
+function switchTab(tab){
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  if(tab==='home')renderHome();
+  if(tab==='review')renderReview();
+  if(tab==='wrong')renderWrong();
+  if(tab==='stats')renderStats();
+  if(tab==='settings')renderSettings();
+}
+function goHome(){switchTab('home');}
+
+// ================================================================
+//  HOME
+// ================================================================
+function renderHome(){
+  const body=document.getElementById('home-body');
+  let html='<div class="subject-grid">';
+  for(const[key,subj]of Object.entries(SUBJECTS)){
+    const qs=STORE.questions.filter(q=>q.subject===key);
+    const total=qs.length;
+    if(total===0){html+=`<div class="subject-card" onclick="enterSubject('${key}')"><div class="s-name">${subj.name}</div><div class="empty">暂无题目</div></div>`;continue;}
+    const done=qs.filter(q=>STORE.records[q.id]).length;
+    let correct=0,attempts=0;
+    qs.forEach(q=>{const r=STORE.records[q.id];if(r){attempts+=r.attempts;correct+=r.correct;}});
+    const acc=attempts>0?Math.round(correct/attempts*100):0;
+    const pct=total>0?Math.round(done/total*100):0;
+    const mastered=qs.filter(q=>STORE.records[q.id]&&STORE.records[q.id].reviewLevel>=5).length;
+    const due=getDueQuestions(key).length;
+    html+=`<div class="subject-card" onclick="enterSubject('${key}')">
+      <div class="s-name">${subj.name}</div>
+      <div class="s-stats">
+        <div class="s-stat"><span>总题数</span><span class="val">${total}</span></div>
+        <div class="s-stat"><span>今日待复习</span><span class="val" style="color:var(--danger)">${due}</span></div>
+        <div class="s-stat"><span>已掌握</span><span class="val" style="color:var(--success)">${mastered}</span></div>
+        <div class="s-stat"><span>正确率</span><span class="val">${acc}%</span></div>
+      </div>
+      <div class="s-bar"><div class="s-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  html+='</div>';
+  if(STORE.questions.length===0){
+    html+=`<div style="padding:20px 16px;text-align:center"><div style="font-size:48px;margin-bottom:12px">📥</div><div style="font-size:14px;color:var(--text3);margin-bottom:12px">题库为空，请先导入题目</div><button class="setting-btn" style="background:var(--accent);color:#fff;border:none;max-width:200px;margin:0 auto" onclick="document.getElementById('jsonFileInput').click()">导入 JSON 题库</button></div>`;
+  }
+  body.innerHTML=html;
+}
+
+// ================================================================
+//  CHAPTERS
+// ================================================================
+function enterSubject(key){
+  CURRENT_SUBJECT=key;CURRENT_FILTER='all';
+  document.querySelectorAll('#ch-filter .filter-chip').forEach(c=>c.classList.remove('active'));
+  document.querySelector('#ch-filter .filter-chip[data-filter="all"]').classList.add('active');
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-chapters').classList.add('active');
+  document.getElementById('ch-subject-title').textContent=SUBJECTS[key].name;
+  renderChapters();
+}
+function setFilter(el,f){document.querySelectorAll('#ch-filter .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');CURRENT_FILTER=f;renderChapters();}
+
+function getChapters(subjectKey,filter){
+  let qs=STORE.questions.filter(q=>q.subject===subjectKey);
+  if(filter&&filter!=='all')qs=qs.filter(q=>q.type===filter);
+  const chapters={};qs.forEach(q=>{const ch=q.chapter||'未分类';if(!chapters[ch])chapters[ch]=[];chapters[ch].push(q);});
+  return chapters;
+}
+
+function renderChapters(){
+  const body=document.getElementById('chapters-body');
+  const chapters=getChapters(CURRENT_SUBJECT,CURRENT_FILTER);
+  const keys=Object.keys(chapters);
+  if(keys.length===0){body.innerHTML='<div class="empty-state"><div class="es-icon"></div><div class="es-text">暂无题目</div></div>';return;}
+  let html='<div class="chapter-list">';
+  const total=keys.reduce((s,k)=>s+chapters[k].length,0);
+  html+=`<button class="full-random-btn" onclick="startQuiz({mode:'random',subject:'${CURRENT_SUBJECT}',chapter:null,filter:'${CURRENT_FILTER}'})">🎲 全书随机 (${total} 题)</button>`;
+  keys.forEach(ch=>{
+    const qs=chapters[ch];const done=qs.filter(q=>STORE.records[q.id]).length;
+    let correct=0,attempts=0;qs.forEach(q=>{const r=STORE.records[q.id];if(r){attempts+=r.attempts;correct+=r.correct;}});
+    const acc=attempts>0?Math.round(correct/attempts*100):0;
+    html+=`<div class="chapter-item"><div class="ch-name">${escHtml(ch)}</div>
+      <div class="ch-stats"><span>题数 <span class="val">${qs.length}</span></span><span>已完成 <span class="val">${done}</span></span><span>正确率 <span class="val">${acc}%</span></span></div>
+      <div class="chapter-actions">
+        <button class="chapter-btn primary" data-ch="${escHtml(ch)}" onclick="doChapterQuiz(this,'sequential')">📖 做本章题</button>
+        <button class="chapter-btn secondary" data-ch="${escHtml(ch)}" onclick="doChapterQuiz(this,'random')">🎲 本章随机</button>
+      </div></div>`;
+  });
+  html+='</div>';body.innerHTML=html;
+}
+
+function doChapterQuiz(btn,mode){
+  const ch=btn.getAttribute('data-ch');
+  startQuiz({mode,subject:CURRENT_SUBJECT,chapter:ch,filter:CURRENT_FILTER});
+}
+
+// ================================================================
+//  QUIZ ENGINE
+// ================================================================
+function startQuiz(config){
+  lastQuizConfig=config;
+  const{mode,subject,chapter,filter,isReview}=config;
+  let pool=STORE.questions.filter(q=>q.subject===subject);
+  if(chapter)pool=pool.filter(q=>q.chapter===chapter);
+  if(filter&&filter!=='all')pool=pool.filter(q=>q.type===filter);
+  if(isReview)pool=pool.filter(q=>isDueToday(q.id));
+  if(pool.length===0){alert('没有符合条件的题目！');return;}
+  if(mode==='random'||mode==='wrong'||mode==='unseen'||mode==='review')pool.sort(()=>Math.random()-.5);
+  QUIZ_QUESTIONS=pool;QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0};
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-quiz').classList.add('active');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  if(QUIZ_INDEX>=QUIZ_QUESTIONS.length){showQuizSummary();return;}
+  QUIZ_SUBMITTED=false;QUIZ_SELECTED=[];
+  const q=QUIZ_QUESTIONS[QUIZ_INDEX];
+  const total=QUIZ_QUESTIONS.length;
+  document.getElementById('qz-chapter').textContent=q.chapter||'未分类';
+  document.getElementById('qz-progress').textContent=(QUIZ_INDEX+1)+'/'+total;
+  document.getElementById('qz-bar').style.width=(QUIZ_INDEX/total*100)+'%';
+
+  const qType=q.type||(q.ans.length>1?'multi':'single');
+  const typeLabel=qType==='single'?'单选':qType==='multi'?'多选':'不定项';
+  const typeClass=qType==='single'?'':qType==='multi'?'multi':'uncertain';
+  const answerHint=qType!=='single'?`<span class="q-answer-hint">正确答案 ${q.ans.length} 个</span>`:'';
+
+  // Review level dots
+  const rec=STORE.records[q.id];
+  const level=rec?rec.reviewLevel:0;
+  let dotsHtml='<div class="q-review-dots">';
+  for(let i=0;i<5;i++){dotsHtml+=`<div class="q-review-dot${i<level?(level>=5?' max':' filled'):''}"></div>`;}
+  dotsHtml+='</div>';
+  const reviewLabel=level>=5?'✅ 已掌握':'📅 '+REVIEW_LABELS[level];
+
+  let html=`<div class="q-type-bar">
+    <span class="q-type-tag ${typeClass}">${typeLabel}</span>
+    <span class="q-source">${q.source||''} ${q.year?'('+q.year+')':''}</span>
+    ${answerHint}
+  </div>
+  <div class="q-review-indicator">${dotsHtml}<span>${reviewLabel}</span></div>
+  <div class="q-text">${escHtml(q.q)}</div><div class="q-options">`;
+
+  ['A','B','C','D'].forEach(letter=>{
+    if(q.opts[letter]){
+      html+=`<div class="q-option" data-letter="${letter}" onclick="selectOpt(this,'${letter}')"><span class="opt-mark">${letter}</span><span>${escHtml(q.opts[letter])}</span><span class="unsure-btn" data-letter="${letter}" onclick="event.stopPropagation();toggleUnsure(this,'${letter}')" style="display:none">? 不确定</span></div>`;
+    }
+  });
+  html+='</div>';
+  html+=`<button class="q-submit-btn" id="qSubmitBtn" onclick="submitAnswer()" disabled>提交答案</button>`;
+  const kpHtml=q.keypoints&&q.keypoints.length>0?`<div class="q-keypoint" id="qKeypoint" onclick="this.classList.toggle('open')"><div class="kp-label">💡 考点 [点击揭示]</div><div class="kp-tags">${q.keypoints.join(' / ')}</div></div>`:'';
+  html+=`<div class="q-explanation" id="qExplanation"><div class="exp-label">📝 解析</div><div class="exp-text">${escHtml(q.exp||'暂无解析')}</div>${kpHtml}</div>`;
+  html+=`<button class="q-next-btn" id="qNextBtn" onclick="nextQuestion()">下一题 →</button>`;
+
+  document.getElementById('quiz-body').innerHTML=html;
+  document.getElementById('quiz-body').scrollTop=0;
+}
+
+function selectOpt(el,letter){
+  if(QUIZ_SUBMITTED)return;
+  const q=QUIZ_QUESTIONS[QUIZ_INDEX];
+  const qType=q.type||(q.ans.length>1?'multi':'single');
+  const isMulti=qType!=='single';
+  if(isMulti){
+    if(QUIZ_SELECTED.includes(letter)){QUIZ_SELECTED=QUIZ_SELECTED.filter(l=>l!==letter);el.classList.remove('selected');}
+    else{QUIZ_SELECTED.push(letter);el.classList.add('selected');}
+  }else{document.querySelectorAll('.q-option').forEach(o=>o.classList.remove('selected'));QUIZ_SELECTED=[letter];el.classList.add('selected');}
+  document.getElementById('qSubmitBtn').disabled=QUIZ_SELECTED.length===0;
+}
+
+function toggleUnsure(btn,letter){
+  if(!QUIZ_SUBMITTED)return;
+  btn.classList.toggle('active');
+  const q=QUIZ_QUESTIONS[QUIZ_INDEX];
+  const rec=getReviewRecord(q.id);
+  if(!rec.unsureOpts)rec.unsureOpts=[];
+  if(btn.classList.contains('active')){if(!rec.unsureOpts.includes(letter))rec.unsureOpts.push(letter);}
+  else{rec.unsureOpts=rec.unsureOpts.filter(u=>u!==letter);}
+  saveStore();
+}
+
+function submitAnswer(){
+  if(QUIZ_SUBMITTED||QUIZ_SELECTED.length===0)return;
+  QUIZ_SUBMITTED=true;
+  const q=QUIZ_QUESTIONS[QUIZ_INDEX];
+  const correctAns=q.ans.slice().sort().join('');
+  const userAns=QUIZ_SELECTED.slice().sort().join('');
+  const isCorrect=correctAns===userAns;
+
+  document.querySelectorAll('.q-option').forEach(el=>{
+    el.classList.add('locked');
+    const letter=el.dataset.letter;
+    el.querySelector('.unsure-btn').style.display='';
+    if(q.ans.includes(letter))el.classList.add('correct');
+    if(QUIZ_SELECTED.includes(letter)&&!q.ans.includes(letter))el.classList.add('wrong');
+  });
+
+  // Update record
+  const rec=getReviewRecord(q.id);
+  rec.attempts++;rec.lastAnswer=[...QUIZ_SELECTED];rec.lastResult=isCorrect;
+  if(isCorrect){rec.correct++;QUIZ_RESULT.correct++;}
+  else{QUIZ_RESULT.wrong++;}
+
+  // Update spaced repetition
+  updateReviewLevel(q.id, isCorrect);
+
+  const expEl=document.getElementById('qExplanation');
+  expEl.querySelector('.exp-label').textContent=(isCorrect?'✅ 回答正确！':'❌ 回答错误，正确答案：'+correctAns);
+  expEl.classList.add('show');
+
+  // Update review indicator
+  const newLevel=STORE.records[q.id].reviewLevel;
+  const ri=document.querySelector('.q-review-indicator');
+  if(ri){
+    let dots='<div class="q-review-dots">';
+    for(let i=0;i<5;i++){dots+=`<div class="q-review-dot${i<newLevel?(newLevel>=5?' max':' filled'):''}"></div>`;}
+    dots+='</div>';
+    ri.innerHTML=dots+'<span>'+(newLevel>=5?'✅ 已掌握':'📅 '+REVIEW_LABELS[newLevel])+'</span>';
+  }
+
+  document.getElementById('qSubmitBtn').style.display='none';
+  document.getElementById('qNextBtn').classList.add('show');
+  document.getElementById('qNextBtn').textContent=QUIZ_INDEX>=QUIZ_QUESTIONS.length-1?'查看结果 →':'下一题 →';
+  expEl.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function nextQuestion(){
+  QUIZ_INDEX++;
+  if(QUIZ_INDEX>=QUIZ_QUESTIONS.length)showQuizSummary();
+  else renderQuestion();
+}
+
+function showQuizSummary(){
+  const total=QUIZ_RESULT.correct+QUIZ_RESULT.wrong;
+  const pct=total>0?Math.round(QUIZ_RESULT.correct/total*100):0;
+  const circle=pct>=80?'var(--success-light)':pct>=60?'var(--warning-light)':'var(--danger-light)';
+
+  // Log daily
+  logDaily(total, QUIZ_RESULT.correct);
+
+  document.getElementById('summaryContent').innerHTML=`
+    <h2>本轮完成！</h2>
+    <div class="qs-circle" style="background:${circle}"><div class="pct">${pct}%</div><div class="label">正确率</div></div>
+    <div class="qs-details">
+      <div class="item"><div class="num" style="color:var(--success)">${QUIZ_RESULT.correct}</div><div>正确</div></div>
+      <div class="item"><div class="num" style="color:var(--danger)">${QUIZ_RESULT.wrong}</div><div>错误</div></div>
+      <div class="item"><div class="num">${total}</div><div>总题数</div></div>
+    </div>`;
+  document.getElementById('summaryModal').classList.add('open');
+}
+function closeSummary(){document.getElementById('summaryModal').classList.remove('open');goHome();}
+
+// ================================================================
+//  REVIEW DASHBOARD
+// ================================================================
+function renderReview(){
+  const body=document.getElementById('review-body');
+  const dueAll=getDueQuestions(null);
+  const totalQs=STORE.questions.length;
+  const mastered=STORE.questions.filter(q=>STORE.records[q.id]&&STORE.records[q.id].reviewLevel>=5).length;
+  const unseen=STORE.questions.filter(q=>!STORE.records[q.id]).length;
+  const inProgress=totalQs-mastered-unseen;
+
+  // Subject breakdown
+  let subjDue='';
+  for(const[key,subj]of Object.entries(SUBJECTS)){
+    const d=getDueQuestions(key).length;
+    if(d>0)subjDue+=`<span style="font-size:11px;padding:2px 6px;background:var(--surface3);border-radius:8px;margin:2px;display:inline-block">${subj.name}: ${d}</span>`;
+  }
+
+  const schedule=getWeekSchedule(null);
+  let schedHtml='';
+  schedule.forEach(s=>{
+    const cls=s.isToday?'schedule-day today':'schedule-day';
+    const color=s.count>0?'var(--accent)':'var(--text3)';
+    schedHtml+=`<div class="${cls}"><span class="sd-date">${s.label}</span><span class="sd-label" style="color:${color}">${s.count>0?s.count+' 题':'无安排'}</span></div>`;
+  });
+
+  // Daily log (last 7 days)
+  const logDates=Object.keys(STORE.dailyLog).sort().reverse().slice(0,7);
+  let logHtml='';
+  logDates.forEach(d=>{
+    const entry=STORE.dailyLog[d];
+    const acc=entry.count>0?Math.round(entry.correct/entry.count*100):0;
+    logHtml+=`<div class="daily-item"><span class="di-date">${d.slice(5)}</span><span class="di-info">${entry.count}题 · 正确${entry.correct}</span><span class="di-count">${acc}%</span></div>`;
+  });
+
+  body.innerHTML=`
+    <div class="review-hero">
+      <div class="rh-today">${dueAll.length}</div>
+      <div class="rh-label">今日待复习</div>
+      <div class="rh-sub">${subjDue||'全部完成 🎉'}</div>
+      <button class="review-start-btn" onclick="startReviewSession()" ${dueAll.length===0?'disabled':''}>
+        ${dueAll.length>0?'🔥 开始今日复习':'✅ 今日已完成'}
+      </button>
+    </div>
+    <div class="review-stats-row">
+      <div class="review-stat-card"><div class="rsc-val" style="color:var(--accent)">${totalQs}</div><div class="rsc-label">总题数</div></div>
+      <div class="review-stat-card"><div class="rsc-val" style="color:var(--success)">${mastered}</div><div class="rsc-label">已掌握</div></div>
+      <div class="review-stat-card"><div class="rsc-val" style="color:var(--warning)">${unseen+inProgress}</div><div class="rsc-label">待掌握</div></div>
+    </div>
+    <div class="review-schedule">
+      <div class="review-schedule-title">📅 未来7天复习计划</div>
+      ${schedHtml}
+    </div>
+    ${logDates.length>0?`<div class="daily-log"><div class="daily-log-title"> 最近做题记录</div>${logHtml}</div>`:''}
+  `;
+}
+
+function startReviewSession(){
+  // 收集所有科目的待复习题
+  let due=getDueQuestions(null);
+  if(due.length===0){alert('今日没有需要复习的题目！');return;}
+  due.sort(()=>Math.random()-.5);
+  QUIZ_QUESTIONS=due;QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0};
+  lastQuizConfig={mode:'review',subject:null,chapter:null,filter:'all',isReview:true};
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-quiz').classList.add('active');
+  renderQuestion();
+}
+
+// ================================================================
+//  WRONG
+// ================================================================
+function setWrongFilter(el,f){document.querySelectorAll('#wrong-filters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');WRONG_FILTER=f;renderWrong();}
+
+function renderWrong(){
+  const body=document.getElementById('wrong-body');
+  const wrongQs=[];
+  STORE.questions.forEach(q=>{
+    const r=STORE.records[q.id];if(!r)return;
+    if(WRONG_FILTER==='unsure'){if(r.unsureOpts&&r.unsureOpts.length>0)wrongQs.push({q,r});}
+    else{if(r.wrongCount>0)wrongQs.push({q,r});}
+  });
+  if(wrongQs.length===0){body.innerHTML='<div class="empty-state"><div class="es-icon">🎉</div><div class="es-text">'+(WRONG_FILTER==='unsure'?'没有不确定的题':'暂无错题，太棒了！')+'</div></div>';return;}
+  wrongQs.sort((a,b)=>(b.r.wrongCount||0)-(a.r.wrongCount||0));
+  let html='<div class="wrong-list">';
+  wrongQs.forEach(({q,r})=>{
+    html+=`<div class="wrong-item" onclick="startQuiz({mode:'single',subject:'${q.subject}',chapter:null,filter:'all'})">
+      <div class="wq">${escHtml(q.q.substring(0,60))}${q.q.length>60?'...':''}</div>
+      <div class="wmeta"><span class="tag">${SUBJECTS[q.subject]?.name||q.subject}</span><span class="tag">${q.chapter||'未分类'}</span><span class="wrong-count">错${r.wrongCount||0}次</span></div>
+    </div>`;
+  });
+  html+='</div>';body.innerHTML=html;
+}
+
+// ================================================================
+//  STATS
+// ================================================================
+function renderStats(){
+  const body=document.getElementById('stats-body');
+  let totalAttempts=0,totalCorrect=0,totalQs=STORE.questions.length;
+  STORE.questions.forEach(q=>{const r=STORE.records[q.id];if(r){totalAttempts+=r.attempts;totalCorrect+=r.correct;}});
+  const acc=totalAttempts>0?Math.round(totalCorrect/totalAttempts*100):0;
+
+  let html=`<div class="stats-summary">
+    <div class="stats-card"><div class="sc-val">${totalQs}</div><div class="sc-label">总题数</div></div>
+    <div class="stats-card"><div class="sc-val">${totalAttempts}</div><div class="sc-label">总做题</div></div>
+    <div class="stats-card"><div class="sc-val">${acc}%</div><div class="sc-label">正确率</div></div>
+  </div>`;
+
+  // Per-subject
+  html+='<div class="stats-section"><div class="stats-section-title">各科正确率</div><div class="bar-chart">';
+  for(const[key,subj]of Object.entries(SUBJECTS)){
+    const qs=STORE.questions.filter(q=>q.subject===key);if(qs.length===0)continue;
+    let sAtt=0,sCor=0;qs.forEach(q=>{const r=STORE.records[q.id];if(r){sAtt+=r.attempts;sCor+=r.correct;}});
+    const sAcc=sAtt>0?Math.round(sCor/sAtt*100):0;
+    const color=sAcc>=80?'var(--success)':sAcc>=60?'var(--warning)':'var(--danger)';
+    html+=`<div class="bar-row"><div class="bar-label">${subj.name}</div><div class="bar-track"><div class="bar-fill" style="width:${sAcc}%;background:${color}"></div></div><div class="bar-val">${sAcc}%</div></div>`;
+  }
+  html+='</div></div>';
+
+  // Weakest chapters
+  const chapterStats={};
+  STORE.questions.forEach(q=>{const ch=q.chapter||'未分类';if(!chapterStats[ch])chapterStats[ch]={attempts:0,correct:0};const r=STORE.records[q.id];if(r){chapterStats[ch].attempts+=r.attempts;chapterStats[ch].correct+=r.correct;}});
+  const weakChapters=Object.entries(chapterStats).filter(([_,v])=>v.attempts>=3).sort((a,b)=>(a[1].correct/a[1].attempts)-(b[1].correct/b[1].attempts)).slice(0,5);
+  if(weakChapters.length>0){
+    html+='<div class="stats-section"><div class="stats-section-title">薄弱章节 Top 5</div><div class="bar-chart">';
+    weakChapters.forEach(([ch,v])=>{const wAcc=Math.round(v.correct/v.attempts*100);
+      html+=`<div class="bar-row"><div class="bar-label" style="width:80px;font-size:11px">${ch.substring(0,8)}</div><div class="bar-track"><div class="bar-fill" style="width:${wAcc}%;background:var(--danger)"></div></div><div class="bar-val">${wAcc}%</div></div>`;
+    });
+    html+='</div></div>';
+  }
+
+  // Daily log chart
+  const logDates=Object.keys(STORE.dailyLog).sort().slice(-14);
+  if(logDates.length>0){
+    html+='<div class="stats-section"><div class="stats-section-title"> 每日做题趋势</div><div class="bar-chart">';
+    const maxCount=Math.max(...logDates.map(d=>STORE.dailyLog[d].count));
+    logDates.forEach(d=>{
+      const entry=STORE.dailyLog[d];
+      const pct=maxCount>0?Math.round(entry.count/maxCount*100):0;
+      const acc=entry.count>0?Math.round(entry.correct/entry.count*100):0;
+      html+=`<div class="bar-row"><div class="bar-label">${d.slice(5)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)"></div></div><div class="bar-val">${entry.count}题 ${acc}%</div></div>`;
+    });
+    html+='</div></div>';
+  }
+
+  body.innerHTML=html;
+}
+
+// ================================================================
+//  SETTINGS
+// ================================================================
+function renderSettings(){
+  const body=document.getElementById('settings-body');
+  const s=STORE.settings;
+  const themeLabel=s.theme==='dark'?'深色':s.theme==='light'?'浅色':'跟随系统';
+  const fsLabel=s.fontSize==='small'?'小':s.fontSize==='large'?'大':'中';
+  const mastered=STORE.questions.filter(q=>STORE.records[q.id]&&STORE.records[q.id].reviewLevel>=5).length;
+
+  body.innerHTML=`
+    <div class="setting-group"><div class="setting-group-title">外观</div>
+      <div class="setting-item" onclick="cycleTheme()"><span class="si-label">主题模式</span><span class="si-value">${themeLabel} →</span></div>
+      <div class="setting-item" onclick="cycleFontSize()"><span class="si-label">字体大小</span><span class="si-value">${fsLabel} →</span></div>
+    </div>
+    <div class="setting-group"><div class="setting-group-title">数据</div>
+      <button class="setting-btn" onclick="exportData()">📤 导出 JSON 备份</button>
+      <button class="setting-btn" onclick="document.getElementById('jsonFileInput').click()"> 导入 JSON 题库</button>
+      <button class="setting-btn danger" onclick="clearData()">🗑 清空所有数据</button>
+    </div>
+    <div class="setting-group"><div class="setting-group-title">关于</div>
+      <div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text3)">
+        法考真金题 v2.0（冲刺版）<br>
+        题库：${STORE.questions.length} 题 · 已掌握：${mastered} 题<br>
+        复习算法：艾宾浩斯遗忘曲线（14天冲刺）
+      </div>
+    </div>`;
+}
+
+function cycleTheme(){
+  const themes=['auto','light','dark'];const idx=themes.indexOf(STORE.settings.theme);
+  STORE.settings.theme=themes[(idx+1)%themes.length];applySettings();saveStore();renderSettings();
+}
+function cycleFontSize(){
+  const sizes=['small','medium','large'];const idx=sizes.indexOf(STORE.settings.fontSize);
+  STORE.settings.fontSize=sizes[(idx+1)%sizes.length];applySettings();saveStore();renderSettings();
+}
+
+// ================================================================
+//  IMPORT / EXPORT
+// ================================================================
+function exportData(){
+  const blob=new Blob([JSON.stringify(STORE,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='法考真金题_备份_'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
+}
+
+function handleJSONFile(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      const imported=data.questions||[];
+      if(imported.length===0){alert(' JSON 文件中没有找到题目！');return;}
+      let count=0;
+      imported.forEach(item=>{
+        let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
+        const q={
+          id:item.id||('imp_'+Date.now()+'_'+count),
+          subject:item.subject||detectSubject(item),
+          book:item.book||'',chapter:item.chapter||'未分类',
+          year:item.year||null,source:item.source||item.meta||'',
+          type:item.type||(ans.length>1?'multi':'single'),
+          answerCount:ans.length,q:item.q||item.question||'',
+          opts:item.opts||item.options||{},ans:ans,
+          exp:item.exp||item.explanation||'',
+          keypoints:item.keypoints||[],difficulty:item.difficulty||null,page:item.page||null,
+        };
+        if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
+          if(!STORE.questions.find(existing=>existing.id===q.id)){STORE.questions.push(q);count++;}
+        }
+      });
+      if(count>0){saveStore();alert('✅ 成功导入 '+count+' 道题！');switchTab('home');}
+      else{alert('❌ 未能识别有效题目！');}
+    }catch(err){alert('❌ JSON 解析失败：'+err.message);}
+  };
+  reader.readAsText(file);event.target.value='';
+}
+
+function detectSubject(item){
+  const topic=(item.topic||item.subject||item.chapter||'').toLowerCase();
+  if(topic.includes('民诉'))return'ms';if(topic.includes('刑法'))return'xf';
+  if(topic.includes('民法'))return'mf';if(topic.includes('刑诉'))return'xc';
+  if(topic.includes('行政'))return'xz';if(topic.includes('商经'))return'sj';
+  if(topic.includes('三国'))return'sg';if(topic.includes('理论')||topic.includes('法理'))return'll';
+  return'ms';
+}
+
+function clearData(){
+  if(confirm('⚠️ 确定清空所有题目和答题记录？此操作不可撤销！')){
+    if(confirm('再次确认：清空所有数据？')){
+      STORE={version:2,questions:[],records:{},dailyLog:{},settings:STORE.settings};
+      saveStore();switchTab('home');
+    }
+  }
+}
+
+function escHtml(text){const div=document.createElement('div');div.textContent=text;return div.innerHTML;}
+
+// Init
+loadStore();renderHome();
+</script>
+</body>
+</html>
