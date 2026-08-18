@@ -399,7 +399,7 @@ function todayStr(){
 //  SPACED REPETITION ENGINE
 // ================================================================
 function getReviewRecord(qid){
-  if(!STORE.records[qid]) STORE.records[qid]={attempts:0,correct:0,lastAnswer:[],lastResult:false,unsureOpts:[],wrongCount:0,reviewLevel:0,nextReview:null,consecutiveCorrect:0};
+  if(!STORE.records[qid]) STORE.records[qid]={attempts:0,correct:0,lastAnswer:[],lastResult:false,unsureOpts:[],wrongCount:0,reviewLevel:0,nextReview:null,consecutiveCorrect:0,roundSeen:false};
   return STORE.records[qid];
 }
 
@@ -670,25 +670,28 @@ function startQuiz(config){
   if(isReview)pool=pool.filter(q=>isDueToday(q.id));
   if(pool.length===0){alert('没有符合条件的题目！');return;}
 
-  // Random mode: prioritize unseen questions first
+  // Random mode: prioritize unseen questions first (roundSeen tracks current cycle)
   if(mode==='random'){
-    const unseen=pool.filter(q=>!STORE.records[q.id]||STORE.records[q.id].attempts===0);
+    const unseen=pool.filter(q=>{const r=STORE.records[q.id];return !r||!r.roundSeen;});
     if(unseen.length>0){
       pool=unseen;
-      showToast('📝 优先做未做过的题（'+unseen.length+'题）');
+      showToast('📝 本轮剩余 '+unseen.length+' 题未做');
     }else{
-      // All questions attempted - ask user if they want to restart
-      if(confirm('本范围内所有题目都已做过！是否清除记录重新开始？')){
-        pool.forEach(q=>{delete STORE.records[q.id];});
+      // All questions seen in this round - ask to reset the round (keep stats!)
+      if(confirm('本范围所有题目本轮都已做过！\n是否开始新一轮？（做题记录和正确率会保留）')){
+        pool.forEach(q=>{if(STORE.records[q.id])STORE.records[q.id].roundSeen=false;});
         saveStore();
-        showToast('🔄 已清除记录，重新开始');
+        showToast('🔄 新一轮开始！记录已保留');
+        // Re-filter to get all as unseen
+        pool=pool.filter(q=>{const r=STORE.records[q.id];return !r||!r.roundSeen;});
       }
       // else: continue with full pool for review
     }
     pool.sort(()=>Math.random()-.5);
   }else if(mode==='unseen'){
-    pool=pool.filter(q=>!STORE.records[q.id]||STORE.records[q.id].attempts===0);
-    if(pool.length===0){alert('所有题目都已做过！可在设置中清空记录。');return;}
+    // Never attempted - truly new questions only
+    pool=pool.filter(q=>{const r=STORE.records[q.id];return !r||r.attempts===0;});
+    if(pool.length===0){alert('所有题目都已至少做过一次！');return;}
     pool.sort(()=>Math.random()-.5);
   }else if(mode==='wrong'||mode==='review'){
     pool.sort(()=>Math.random()-.5);
@@ -789,7 +792,7 @@ function submitAnswer(){
 
   // Update record
   const rec=getReviewRecord(q.id);
-  rec.attempts++;rec.lastAnswer=[...QUIZ_SELECTED];rec.lastResult=isCorrect;
+  rec.attempts++;rec.lastAnswer=[...QUIZ_SELECTED];rec.lastResult=isCorrect;rec.roundSeen=true;
   if(isCorrect){rec.correct++;QUIZ_RESULT.correct++;}
   else{QUIZ_RESULT.wrong++;}
 
