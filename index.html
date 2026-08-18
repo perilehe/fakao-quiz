@@ -120,7 +120,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 
 /* ===== QUIZ ===== */
 .quiz-top{padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.quiz-top .quiz-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.quiz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.quiz-back-btn{font-size:13px;color:var(--accent);cursor:pointer;padding:4px 8px;border-radius:6px;user-select:none}
+.quiz-back-btn:active{background:var(--accent-light)}
+.quiz-top .quiz-meta{display:flex;align-items:center;justify-content:space-between}
 .quiz-top .quiz-meta .progress-text{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums}
 .quiz-top .quiz-meta .chapter-name{font-size:11px;color:var(--accent);font-weight:600}
 .quiz-top .quiz-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
@@ -279,9 +282,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 <!-- Screen: Quiz -->
 <div class="screen" id="screen-quiz">
   <div class="quiz-top">
-    <div class="quiz-meta">
-      <span class="chapter-name" id="qz-chapter">第一章</span>
-      <span class="progress-text" id="qz-progress">1/20</span>
+    <div class="quiz-top-row">
+      <span class="quiz-back-btn" onclick="exitQuiz()">← 返回</span>
+      <div class="quiz-meta">
+        <span class="chapter-name" id="qz-chapter">第一章</span>
+        <span class="progress-text" id="qz-progress">1/20</span>
+      </div>
     </div>
     <div class="quiz-bar"><div class="quiz-bar-fill" id="qz-bar"></div></div>
   </div>
@@ -539,6 +545,13 @@ function doChapterQuiz(btn,mode){
   startQuiz({mode,subject:CURRENT_SUBJECT,chapter:ch,filter:CURRENT_FILTER});
 }
 
+function exitQuiz(){
+  if(!QUIZ_SUBMITTED&&QUIZ_SELECTED.length>0){
+    if(!confirm('正在答题中，确定退出吗？当前进度不会保存。'))return;
+  }
+  goHome();
+}
+
 // ================================================================
 //  QUIZ ENGINE
 // ================================================================
@@ -570,7 +583,7 @@ function renderQuestion(){
   const qType=q.type||(q.ans.length>1?'multi':'single');
   const typeLabel=qType==='single'?'单选':qType==='multi'?'多选':'不定项';
   const typeClass=qType==='single'?'':qType==='multi'?'multi':'uncertain';
-  const answerHint=qType!=='single'?`<span class="q-answer-hint" onclick="this.classList.toggle('revealed');this.querySelector('.hint-num').textContent=this.classList.contains('revealed')?'${q.ans.length}':'?'">答案 <span class="hint-num">?</span> 个</span>`:'';
+  const answerHint=qType!=='single'?`<span class="q-answer-hint" onclick="this.classList.toggle('revealed');this.querySelector('.hint-num').textContent=this.classList.contains('revealed')?'${q.ans.length}':'?'">本题 <span class="hint-num">?</span> 选</span>`:'';
 
   // Review level dots
   const rec=STORE.records[q.id];
