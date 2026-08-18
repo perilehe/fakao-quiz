@@ -123,6 +123,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .quiz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .quiz-back-btn{font-size:13px;color:var(--accent);cursor:pointer;padding:4px 8px;border-radius:6px;user-select:none}
 .quiz-back-btn:active{background:var(--accent-light)}
+.quiz-search-btn{font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.quiz-search-btn:active{background:var(--accent-light)}
+.quiz-search-bar{display:flex;gap:8px;margin-top:8px;margin-bottom:6px}
+.quiz-search-bar input{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)}
+.quiz-search-bar button{padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+.quiz-search-bar button:active{opacity:.8}
 .quiz-top .quiz-meta{display:flex;align-items:center;justify-content:space-between}
 .quiz-top .quiz-meta .progress-text{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums}
 .quiz-top .quiz-meta .chapter-name{font-size:11px;color:var(--accent);font-weight:600}
@@ -291,6 +297,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
         <span class="chapter-name" id="qz-chapter">第一章</span>
         <span class="progress-text" id="qz-progress">1/20</span>
       </div>
+      <span class="quiz-search-btn" onclick="toggleQuizSearch()">🔍</span>
+    </div>
+    <div class="quiz-search-bar" id="quiz-search-bar" style="display:none">
+      <input type="text" id="quiz-search-input" placeholder="输入题号如 ms-1 或 2021金题" onkeydown="if(event.key==='Enter')searchQuestion()">
+      <button onclick="searchQuestion()">查找</button>
     </div>
     <div class="quiz-bar"><div class="quiz-bar-fill" id="qz-bar"></div></div>
   </div>
@@ -553,6 +564,25 @@ function exitQuiz(){
     if(!confirm('正在答题中，确定退出吗？当前进度不会保存。'))return;
   }
   goHome();
+}
+
+function toggleQuizSearch(){
+  const bar=document.getElementById('quiz-search-bar');
+  bar.style.display=bar.style.display==='none'?'flex':'none';
+  if(bar.style.display==='flex')document.getElementById('quiz-search-input').focus();
+}
+
+function searchQuestion(){
+  const input=document.getElementById('quiz-search-input').value.trim();
+  if(!input)return;
+  const q=STORE.questions.find(q=>q.id===input||q.source===input||q.source.includes(input));
+  if(!q){alert('未找到题目：'+input);return;}
+  const idx=STORE.questions.indexOf(q);
+  QUIZ_QUESTIONS=[q];QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0,total:1};
+  document.getElementById('screen-quiz').classList.add('active');
+  renderQuestion();
+  document.getElementById('quiz-search-bar').style.display='none';
+  document.getElementById('quiz-search-input').value='';
 }
 
 // ================================================================
