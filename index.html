@@ -387,7 +387,13 @@ function applySettings(){
   if(s.fontSize)root.setAttribute('data-fs',s.fontSize);
 }
 
-function todayStr(){return new Date().toISOString().slice(0,10);}
+function todayStr(){
+  // Use Hong Kong time (UTC+8) for date calculations
+  const now=new Date();
+  const hkOffset=8*60*60*1000; // UTC+8 in ms
+  const hkTime=new Date(now.getTime()+hkOffset);
+  return hkTime.toISOString().slice(0,10);
+}
 
 // ================================================================
 //  SPACED REPETITION ENGINE
@@ -571,7 +577,12 @@ function exitQuiz(){
   if(!QUIZ_SUBMITTED&&QUIZ_SELECTED.length>0){
     if(!confirm('正在答题中，确定退出吗？当前进度不会保存。'))return;
   }
-  goHome();
+  // Return to chapter list (previous level), not main menu
+  if(lastQuizConfig&&lastQuizConfig.subject){
+    enterSubject(lastQuizConfig.subject);
+  }else{
+    goHome();
+  }
 }
 
 function toggleQuizSearch(){
@@ -937,17 +948,17 @@ function renderStats(){
   html+=`<tr class="total-row"><td>合计</td><td>${tTotal}</td><td>${tDone}</td><td>${tComp}%</td><td>${tAcc}%</td></tr>`;
   html+='</tbody></table></div>';
 
-  // Weakest chapters
-  const chapterStats={};
-  STORE.questions.forEach(q=>{const ch=q.chapter||'未分类';if(!chapterStats[ch])chapterStats[ch]={attempts:0,correct:0};const r=STORE.records[q.id];if(r){chapterStats[ch].attempts+=r.attempts;chapterStats[ch].correct+=r.correct;}});
-  const weakChapters=Object.entries(chapterStats).filter(([_,v])=>v.attempts>=3).sort((a,b)=>(a[1].correct/a[1].attempts)-(b[1].correct/b[1].attempts)).slice(0,5);
-  if(weakChapters.length>0){
-    html+='<div class="stats-section"><div class="stats-section-title">薄弱章节 Top 5</div><div class="bar-chart">';
-    weakChapters.forEach(([ch,v])=>{const wAcc=Math.round(v.correct/v.attempts*100);
-      html+=`<div class="bar-row"><div class="bar-label" style="width:80px;font-size:11px">${ch.substring(0,8)}</div><div class="bar-track"><div class="bar-fill" style="width:${wAcc}%;background:var(--danger)"></div></div><div class="bar-val">${wAcc}%</div></div>`;
-    });
-    html+='</div></div>';
+  // Weakest chapters - per-subject with selector
+  html+='<div class="stats-section"><div class="stats-section-title" style="display:flex;align-items:center;justify-content:space-between">';
+  html+='<span>薄弱章节 Top 10</span>';
+  html+='<select id="weak-subject-select" onchange="renderWeakChapters(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px">';
+  html+='<option value="all">全部科目</option>';
+  for(const[key,subj]of Object.entries(SUBJECTS)){
+    const qs=STORE.questions.filter(q=>q.subject===key);
+    if(qs.length>0)html+=`<option value="${key}">${subj.name}</option>`;
   }
+  html+='</select></div>';
+  html+='<div id="weak-chapters-content"></div></div>';
 
   // Daily log chart
   const logDates=Object.keys(STORE.dailyLog).sort().slice(-14);
@@ -964,6 +975,47 @@ function renderStats(){
   }
 
   body.innerHTML=html;
+  renderWeakChapters('all'); // Render weak chapters table initially
+}
+
+// Render weak chapters by subject
+function renderWeakChapters(subjectFilter){
+  const container=document.getElementById('weak-chapters-content');
+  if(!container)return;
+  const qs=subjectFilter==='all'?STORE.questions:STORE.questions.filter(q=>q.subject===subjectFilter);
+  const chapterStats={};
+  qs.forEach(q=>{
+    const ch=q.chapter||'未分类';
+    const sub=q.subject;
+    const key=subjectFilter==='all'?sub+'|||'+ch:ch;
+    if(!chapterStats[key])chapterStats[key]={chapter:ch,subject:sub,attempts:0,correct:0};
+    const r=STORE.records[q.id];
+    if(r){chapterStats[key].attempts+=r.attempts;chapterStats[key].correct+=r.correct;}
+  });
+  const weakChapters=Object.values(chapterStats)
+    .filter(v=>v.attempts>=3)
+    .sort((a,b)=>(a.correct/a.attempts)-(b.correct/b.attempts))
+    .slice(0,10);
+  if(weakChapters.length===0){
+    container.innerHTML='<div class="empty-state" style="padding:20px"><div class="es-text" style="color:var(--text3)">暂无足够数据（需至少做3题）</div></div>';
+    return;
+  }
+  let html='<table class="stats-table"><thead><tr>';
+  if(subjectFilter==='all')html+='<th>科目</th>';
+  html+='<th>章节</th><th>做题数</th><th>正确率</th></tr></thead><tbody>';
+  weakChapters.forEach(v=>{
+    const wAcc=v.attempts>0?Math.round(v.correct/v.attempts*100):0;
+    const subjName=SUBJECTS[v.subject]?.name||v.subject;
+    const color=wAcc<50?'var(--danger)':wAcc<70?'var(--warning)':'var(--success)';
+    html+='<tr>';
+    if(subjectFilter==='all')html+=`<td>${subjName}</td>`;
+    html+=`<td style="text-align:left;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(v.chapter)}">${escHtml(v.chapter.length>20?v.chapter.substring(0,18)+'...':v.chapter)}</td>`;
+    html+=`<td>${v.attempts}</td>`;
+    html+=`<td style="color:${color};font-weight:600">${wAcc}%</td>`;
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  container.innerHTML=html;
 }
 
 // ================================================================
