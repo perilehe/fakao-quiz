@@ -669,7 +669,31 @@ function startQuiz(config){
   if(filter&&filter!=='all')pool=pool.filter(q=>q.type===filter);
   if(isReview)pool=pool.filter(q=>isDueToday(q.id));
   if(pool.length===0){alert('没有符合条件的题目！');return;}
-  if(mode==='random'||mode==='wrong'||mode==='unseen'||mode==='review')pool.sort(()=>Math.random()-.5);
+
+  // Random mode: prioritize unseen questions first
+  if(mode==='random'){
+    const unseen=pool.filter(q=>!STORE.records[q.id]||STORE.records[q.id].attempts===0);
+    if(unseen.length>0){
+      pool=unseen;
+      showToast('📝 优先做未做过的题（'+unseen.length+'题）');
+    }else{
+      // All questions attempted - ask user if they want to restart
+      if(confirm('本范围内所有题目都已做过！是否清除记录重新开始？')){
+        pool.forEach(q=>{delete STORE.records[q.id];});
+        saveStore();
+        showToast('🔄 已清除记录，重新开始');
+      }
+      // else: continue with full pool for review
+    }
+    pool.sort(()=>Math.random()-.5);
+  }else if(mode==='unseen'){
+    pool=pool.filter(q=>!STORE.records[q.id]||STORE.records[q.id].attempts===0);
+    if(pool.length===0){alert('所有题目都已做过！可在设置中清空记录。');return;}
+    pool.sort(()=>Math.random()-.5);
+  }else if(mode==='wrong'||mode==='review'){
+    pool.sort(()=>Math.random()-.5);
+  }
+
   QUIZ_QUESTIONS=pool;QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0};
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
