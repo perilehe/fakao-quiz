@@ -598,15 +598,13 @@ function renderQuestion(){
 
   const kpBadge=q.keypoints&&q.keypoints.length>0?`<span class="q-kp-badge" onclick="this.classList.toggle('open');event.stopPropagation()"><span class="kp-label">💡 考点</span><span class="kp-tags">${q.keypoints.join(' / ')}</span></span>`:'';
 
-  const diagramsHtml=q.diagrams&&q.diagrams.length>0?`<div class="q-diagrams">${q.diagrams.map(d=>`<img src="diagrams/${d}" alt="题目配图" onclick="window.open(this.src,'_blank')">`).join('')}</div>`:'';
-
   let html=`<div class="q-type-bar">
     <span class="q-type-tag ${typeClass}">${typeLabel}</span>
     <span class="q-source">${q.source||''} ${q.year?'('+q.year+')':''}</span>
     ${answerHint}${kpBadge}
   </div>
   <div class="q-review-indicator">${dotsHtml}<span>${reviewLabel}</span></div>
-  <div class="q-text">${escHtml(q.q)}</div>${diagramsHtml}<div class="q-options">`;
+  <div class="q-text">${escHtml(q.q)}</div><div class="q-options">`;
 
   ['A','B','C','D'].forEach(letter=>{
     if(q.opts[letter]){
@@ -614,8 +612,9 @@ function renderQuestion(){
     }
   });
   html+='</div>';
+  const diagramsHtml=q.diagrams&&q.diagrams.length>0?`<div class="q-diagrams">${q.diagrams.map(d=>`<img src="diagrams/${d}" alt="解析配图" onclick="window.open(this.src,'_blank')">`).join('')}</div>`:'';
   html+=`<button class="q-submit-btn" id="qSubmitBtn" onclick="submitAnswer()" disabled>提交答案</button>`;
-  html+=`<div class="q-explanation" id="qExplanation"><div class="exp-label">📝 解析</div><div class="exp-text">${escHtml(q.exp||'暂无解析')}</div></div>`;
+  html+=`<div class="q-explanation" id="qExplanation"><div class="exp-label">📝 解析</div><div class="exp-text">${escHtml(q.exp||'暂无解析')}</div>${diagramsHtml}</div>`;
   html+=`<button class="q-next-btn" id="qNextBtn" onclick="nextQuestion()">下一题 →</button>`;
 
   document.getElementById('quiz-body').innerHTML=html;
