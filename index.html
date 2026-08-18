@@ -600,18 +600,19 @@ function searchQuestion(){
 }
 
 async function syncFromServer(){
+  const btn=event?event.target:null;
+  if(btn){btn.textContent='同步中...';btn.disabled=true;}
   try{
-    const btn=event.target;btn.textContent='同步中...';btn.disabled=true;
     const resp=await fetch('data.json?t='+Date.now(),{cache:'no-store'});
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const data=await resp.json();
     const imported=data.questions||[];
     if(imported.length===0){alert('服务器题库为空');return;}
-    let count=0;
+    let newCount=0,updateCount=0;
     imported.forEach(item=>{
       let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
       const q={
-        id:item.id||('imp_'+Date.now()+'_'+count),
+        id:item.id||('imp_'+Date.now()+'_'+newCount),
         subject:item.subject||detectSubject(item),
         book:item.book||'',chapter:item.chapter||'未分类',
         year:item.year||null,source:item.source||item.meta||'',
@@ -624,15 +625,25 @@ async function syncFromServer(){
       };
       if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
         const existing=STORE.questions.find(e=>e.id===q.id);
-        if(existing){Object.assign(existing,q);}
-        else{STORE.questions.push(q);count++;}
+        if(existing){
+          // Update question content (q, opts, exp, keypoints, diagrams, etc.)
+          // but do NOT touch STORE.records - user progress is preserved
+          Object.assign(existing,q);
+          updateCount++;
+        }else{
+          STORE.questions.push(q);
+          newCount++;
+        }
       }
     });
     saveStore();
-    alert('✅ 同步完成！新增 '+count+' 道题，当前共 '+STORE.questions.length+' 题');
+    const msg=`✅ 同步完成！\n新增 ${newCount} 道题\n更新 ${updateCount} 道题内容\n答题记录已保留\n当前共 ${STORE.questions.length} 题`;
+    alert(msg);
+    if(btn){btn.textContent='🔄 从服务器同步题库';btn.disabled=false;}
     renderSettings();
   }catch(e){
     alert('❌ 同步失败：'+e.message);
+    if(btn){btn.textContent='🔄 从服务器同步题库';btn.disabled=false;}
   }
 }
 
@@ -1056,19 +1067,19 @@ function clearData(){
 
 function escHtml(text){const div=document.createElement('div');div.textContent=text;return div.innerHTML;}
 
-// Auto-load题库 from server (data.json)
+// Auto-load题库 from server (data.json) - updates content AND preserves records
 async function autoLoadFromServer(){
   try{
-    const resp=await fetch('data.json',{cache:'no-store'});
+    const resp=await fetch('data.json?t='+Date.now(),{cache:'no-store'});
     if(!resp.ok)return;
     const data=await resp.json();
     const imported=data.questions||[];
     if(imported.length===0)return;
-    let count=0;
+    let newCount=0,updateCount=0;
     imported.forEach(item=>{
       let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
       const q={
-        id:item.id||('imp_'+Date.now()+'_'+count),
+        id:item.id||('imp_'+Date.now()+'_'+newCount),
         subject:item.subject||detectSubject(item),
         book:item.book||'',chapter:item.chapter||'未分类',
         year:item.year||null,source:item.source||item.meta||'',
@@ -1080,10 +1091,23 @@ async function autoLoadFromServer(){
         diagrams:item.diagrams||[],
       };
       if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
-        if(!STORE.questions.find(existing=>existing.id===q.id)){STORE.questions.push(q);count++;}
+        const existing=STORE.questions.find(e=>e.id===q.id);
+        if(existing){
+          // Update content (exp, keypoints, etc.) - records are separate and preserved
+          Object.assign(existing,q);
+          updateCount++;
+        }else{
+          STORE.questions.push(q);
+          newCount++;
+        }
       }
     });
-    if(count>0){saveStore();showToast('✅ 自动加载 '+count+' 道题');renderHome();}
+    if(newCount>0||updateCount>0){
+      saveStore();
+      const msg=newCount>0?`✅ 加载 ${newCount} 道新题`:`✅ 更新 ${updateCount} 道题`;
+      showToast(msg);
+      renderHome();
+    }
   }catch(e){/* 本地打开时无服务器，静默跳过 */}
 }
 function showToast(msg){
@@ -1096,7 +1120,7 @@ function showToast(msg){
 
 // Init
 loadStore();renderHome();
-if(STORE.questions.length===0) autoLoadFromServer();
+autoLoadFromServer(); // Always sync from server - updates question content, preserves records
 </script>
 </body>
 </html>
