@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>法考真金题</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1060,6 +1063,7 @@ async function autoLoadFromServer(){
         opts:item.opts||item.options||{},ans:ans,
         exp:item.exp||item.explanation||'',
         keypoints:item.keypoints||[],difficulty:item.difficulty||null,page:item.page||null,
+        diagrams:item.diagrams||[],
       };
       if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
         if(!STORE.questions.find(existing=>existing.id===q.id)){STORE.questions.push(q);count++;}
