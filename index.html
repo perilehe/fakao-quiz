@@ -578,15 +578,15 @@ function toggleQuizSearch(){
 function searchQuestion(){
   const input=document.getElementById('quiz-search-input').value.trim();
   if(!input)return;
-  // Search by ID, source, or diagram keyword
   let q;
   if(input==='diagram'||input==='图'||input==='配图'){
     q=STORE.questions.find(q=>q.diagrams&&q.diagrams.length>0);
     if(!q){alert('没有找到有配图的题目');return;}
   }else{
-    q=STORE.questions.find(q=>q.id===input||q.source===input||q.source.includes(input));
+    // 优先精确匹配ID，再匹配source
+    q=STORE.questions.find(q=>q.id===input)||STORE.questions.find(q=>q.source===input||q.source.includes(input));
   }
-  if(!q){alert('未找到题目：'+input);return;}
+  if(!q){alert('未找到题目：'+input+'\n当前题库共'+STORE.questions.length+'题');return;}
   QUIZ_QUESTIONS=[q];QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0,total:1};
   document.getElementById('screen-quiz').classList.add('active');
   renderQuestion();
