@@ -946,8 +946,46 @@ function clearData(){
 
 function escHtml(text){const div=document.createElement('div');div.textContent=text;return div.innerHTML;}
 
+// Auto-load题库 from server (data.json)
+async function autoLoadFromServer(){
+  try{
+    const resp=await fetch('data.json',{cache:'no-store'});
+    if(!resp.ok)return;
+    const data=await resp.json();
+    const imported=data.questions||[];
+    if(imported.length===0)return;
+    let count=0;
+    imported.forEach(item=>{
+      let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
+      const q={
+        id:item.id||('imp_'+Date.now()+'_'+count),
+        subject:item.subject||detectSubject(item),
+        book:item.book||'',chapter:item.chapter||'未分类',
+        year:item.year||null,source:item.source||item.meta||'',
+        type:item.type||(ans.length>1?'multi':'single'),
+        answerCount:ans.length,q:item.q||item.question||'',
+        opts:item.opts||item.options||{},ans:ans,
+        exp:item.exp||item.explanation||'',
+        keypoints:item.keypoints||[],difficulty:item.difficulty||null,page:item.page||null,
+      };
+      if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
+        if(!STORE.questions.find(existing=>existing.id===q.id)){STORE.questions.push(q);count++;}
+      }
+    });
+    if(count>0){saveStore();showToast('✅ 自动加载 '+count+' 道题');renderHome();}
+  }catch(e){/* 本地打开时无服务器，静默跳过 */}
+}
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .5s';
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),500);},2500);
+}
+
 // Init
 loadStore();renderHome();
+if(STORE.questions.length===0) autoLoadFromServer();
 </script>
 </body>
 </html>
