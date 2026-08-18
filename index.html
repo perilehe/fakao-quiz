@@ -132,7 +132,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .q-type-tag.multi{background:var(--warning-light);color:var(--warning)}
 .q-type-tag.uncertain{background:var(--danger-light);color:var(--danger)}
 .q-source{font-size:11px;color:var(--text3)}
-.q-answer-hint{font-size:11px;color:var(--text3);margin-left:auto}
+.q-answer-hint{font-size:11px;color:var(--text3);margin-left:auto;cursor:pointer;user-select:none}
+.q-answer-hint .hint-answer{filter:blur(6px);transition:filter .3s}
+.q-answer-hint.revealed .hint-answer{filter:none}
+.q-answer-hint .hint-toggle{font-size:10px;color:var(--accent);margin-left:4px}
 
 .q-text{font-size:16px;line-height:1.8;font-weight:500;margin-bottom:16px;white-space:pre-wrap}
 .q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
@@ -569,7 +572,7 @@ function renderQuestion(){
   const qType=q.type||(q.ans.length>1?'multi':'single');
   const typeLabel=qType==='single'?'单选':qType==='multi'?'多选':'不定项';
   const typeClass=qType==='single'?'':qType==='multi'?'multi':'uncertain';
-  const answerHint=qType!=='single'?`<span class="q-answer-hint">正确答案 ${q.ans.length} 个</span>`:'';
+  const answerHint=qType!=='single'?`<span class="q-answer-hint" onclick="this.classList.toggle('revealed');this.querySelector('.hint-toggle').textContent=this.classList.contains('revealed')?'':'[点击]'">答案 <span class="hint-answer">${q.ans.length} 个</span><span class="hint-toggle">[点击]</span></span>`:'';
 
   // Review level dots
   const rec=STORE.records[q.id];
