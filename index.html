@@ -163,10 +163,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .q-explanation.show{display:block}
 .q-explanation .exp-label{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:1px}
 .q-explanation .exp-text{font-size:14px;line-height:1.8;white-space:pre-wrap}
-.q-keypoint{margin-top:8px;padding:10px 14px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius-sm);cursor:pointer}
-.q-keypoint .kp-label{font-size:12px;font-weight:600;color:var(--text3)}
-.q-keypoint .kp-tags{font-size:12px;color:var(--accent);margin-top:4px;display:none}
-.q-keypoint.open .kp-tags{display:block}
+.q-kp-badge{position:relative;font-size:11px;color:var(--accent);cursor:pointer;user-select:none;padding:2px 8px;border:1px solid var(--accent-light);border-radius:12px;background:var(--accent-light);margin-left:6px;display:inline-flex;align-items:center;gap:4px}
+.q-kp-badge .kp-label{font-weight:500}
+.q-kp-badge .kp-tags{display:none;position:absolute;top:100%;right:0;margin-top:4px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:12px;color:var(--accent);white-space:nowrap;z-index:10}
+.q-kp-badge.open .kp-tags{display:block}
 
 /* Review level indicator */
 .q-review-indicator{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text3)}
@@ -582,10 +582,12 @@ function renderQuestion(){
   dotsHtml+='</div>';
   const reviewLabel=level>=5?'✅ 已掌握':'📅 '+REVIEW_LABELS[level];
 
+  const kpBadge=q.keypoints&&q.keypoints.length>0?`<span class="q-kp-badge" onclick="this.classList.toggle('open');event.stopPropagation()"><span class="kp-label">💡 考点</span><span class="kp-tags">${q.keypoints.join(' / ')}</span></span>`:'';
+
   let html=`<div class="q-type-bar">
     <span class="q-type-tag ${typeClass}">${typeLabel}</span>
     <span class="q-source">${q.source||''} ${q.year?'('+q.year+')':''}</span>
-    ${answerHint}
+    ${answerHint}${kpBadge}
   </div>
   <div class="q-review-indicator">${dotsHtml}<span>${reviewLabel}</span></div>
   <div class="q-text">${escHtml(q.q)}</div><div class="q-options">`;
@@ -597,8 +599,7 @@ function renderQuestion(){
   });
   html+='</div>';
   html+=`<button class="q-submit-btn" id="qSubmitBtn" onclick="submitAnswer()" disabled>提交答案</button>`;
-  const kpHtml=q.keypoints&&q.keypoints.length>0?`<div class="q-keypoint" id="qKeypoint" onclick="this.classList.toggle('open')"><div class="kp-label">💡 考点 [点击揭示]</div><div class="kp-tags">${q.keypoints.join(' / ')}</div></div>`:'';
-  html+=`<div class="q-explanation" id="qExplanation"><div class="exp-label">📝 解析</div><div class="exp-text">${escHtml(q.exp||'暂无解析')}</div>${kpHtml}</div>`;
+  html+=`<div class="q-explanation" id="qExplanation"><div class="exp-label">📝 解析</div><div class="exp-text">${escHtml(q.exp||'暂无解析')}</div></div>`;
   html+=`<button class="q-next-btn" id="qNextBtn" onclick="nextQuestion()">下一题 →</button>`;
 
   document.getElementById('quiz-body').innerHTML=html;
