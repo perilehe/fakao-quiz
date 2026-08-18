@@ -139,6 +139,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .q-answer-hint .hint-num{font-weight:600;color:var(--accent)}
 
 .q-text{font-size:16px;line-height:1.8;font-weight:500;margin-bottom:16px;white-space:pre-wrap}
+.q-diagrams{margin-bottom:16px;display:flex;flex-direction:column;gap:8px}
+.q-diagrams img{max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);cursor:pointer}
+.q-diagrams img:active{opacity:.8}
 .q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .q-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;font-size:var(--font-size);line-height:1.6}
 .q-option:active{transform:scale(.98)}
@@ -595,13 +598,15 @@ function renderQuestion(){
 
   const kpBadge=q.keypoints&&q.keypoints.length>0?`<span class="q-kp-badge" onclick="this.classList.toggle('open');event.stopPropagation()"><span class="kp-label">💡 考点</span><span class="kp-tags">${q.keypoints.join(' / ')}</span></span>`:'';
 
+  const diagramsHtml=q.diagrams&&q.diagrams.length>0?`<div class="q-diagrams">${q.diagrams.map(d=>`<img src="diagrams/${d}" alt="题目配图" onclick="window.open(this.src,'_blank')">`).join('')}</div>`:'';
+
   let html=`<div class="q-type-bar">
     <span class="q-type-tag ${typeClass}">${typeLabel}</span>
     <span class="q-source">${q.source||''} ${q.year?'('+q.year+')':''}</span>
     ${answerHint}${kpBadge}
   </div>
   <div class="q-review-indicator">${dotsHtml}<span>${reviewLabel}</span></div>
-  <div class="q-text">${escHtml(q.q)}</div><div class="q-options">`;
+  <div class="q-text">${escHtml(q.q)}</div>${diagramsHtml}<div class="q-options">`;
 
   ['A','B','C','D'].forEach(letter=>{
     if(q.opts[letter]){
