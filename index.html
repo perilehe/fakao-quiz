@@ -575,14 +575,57 @@ function toggleQuizSearch(){
 function searchQuestion(){
   const input=document.getElementById('quiz-search-input').value.trim();
   if(!input)return;
-  const q=STORE.questions.find(q=>q.id===input||q.source===input||q.source.includes(input));
+  // Search by ID, source, or diagram keyword
+  let q;
+  if(input==='diagram'||input==='图'||input==='配图'){
+    q=STORE.questions.find(q=>q.diagrams&&q.diagrams.length>0);
+    if(!q){alert('没有找到有配图的题目');return;}
+  }else{
+    q=STORE.questions.find(q=>q.id===input||q.source===input||q.source.includes(input));
+  }
   if(!q){alert('未找到题目：'+input);return;}
-  const idx=STORE.questions.indexOf(q);
   QUIZ_QUESTIONS=[q];QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0,total:1};
   document.getElementById('screen-quiz').classList.add('active');
   renderQuestion();
   document.getElementById('quiz-search-bar').style.display='none';
   document.getElementById('quiz-search-input').value='';
+}
+
+async function syncFromServer(){
+  try{
+    const btn=event.target;btn.textContent='同步中...';btn.disabled=true;
+    const resp=await fetch('data.json?t='+Date.now(),{cache:'no-store'});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    const imported=data.questions||[];
+    if(imported.length===0){alert('服务器题库为空');return;}
+    let count=0;
+    imported.forEach(item=>{
+      let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
+      const q={
+        id:item.id||('imp_'+Date.now()+'_'+count),
+        subject:item.subject||detectSubject(item),
+        book:item.book||'',chapter:item.chapter||'未分类',
+        year:item.year||null,source:item.source||item.meta||'',
+        type:item.type||(ans.length>1?'multi':'single'),
+        answerCount:ans.length,q:item.q||item.question||'',
+        opts:item.opts||item.options||{},ans:ans,
+        exp:item.exp||item.explanation||'',
+        keypoints:item.keypoints||[],difficulty:item.difficulty||null,page:item.page||null,
+        diagrams:item.diagrams||[],
+      };
+      if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
+        const existing=STORE.questions.find(e=>e.id===q.id);
+        if(existing){Object.assign(existing,q);}
+        else{STORE.questions.push(q);count++;}
+      }
+    });
+    saveStore();
+    alert('✅ 同步完成！新增 '+count+' 道题，当前共 '+STORE.questions.length+' 题');
+    renderSettings();
+  }catch(e){
+    alert('❌ 同步失败：'+e.message);
+  }
 }
 
 // ================================================================
@@ -911,8 +954,9 @@ function renderSettings(){
       <div class="setting-item" onclick="cycleFontSize()"><span class="si-label">字体大小</span><span class="si-value">${fsLabel} →</span></div>
     </div>
     <div class="setting-group"><div class="setting-group-title">数据</div>
+      <button class="setting-btn" style="background:var(--accent);color:#fff;border:none" onclick="syncFromServer()">🔄 从服务器同步题库</button>
       <button class="setting-btn" onclick="exportData()">📤 导出 JSON 备份</button>
-      <button class="setting-btn" onclick="document.getElementById('jsonFileInput').click()"> 导入 JSON 题库</button>
+      <button class="setting-btn" onclick="document.getElementById('jsonFileInput').click()">📥 导入 JSON 题库</button>
       <button class="setting-btn danger" onclick="clearData()">🗑 清空所有数据</button>
     </div>
     <div class="setting-group"><div class="setting-group-title">关于</div>
