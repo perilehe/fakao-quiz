@@ -66,6 +66,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .screen-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
 /* ===== HOME ===== */
+.muti-banner{display:flex;align-items:center;gap:12px;margin:12px;padding:14px 16px;background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);border-radius:var(--radius);cursor:pointer;transition:all .15s;color:#fff}
+.muti-banner:active{transform:scale(.98)}
+.muti-banner-left{flex:1}
+.muti-banner-title{font-size:16px;font-weight:800;margin-bottom:2px}
+.muti-banner-sub{font-size:11px;opacity:.85}
+.muti-banner-right{display:flex;gap:12px}
+.muti-banner-stat{text-align:center;font-size:10px;opacity:.85}
+.muti-banner-stat span{display:block;font-size:16px;font-weight:800;opacity:1}
+.muti-banner-arrow{font-size:24px;opacity:.7;font-weight:300}
 .subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}
 .subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s}
 .subject-card:active{transform:scale(.97)}
@@ -353,12 +362,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 //  CONSTANTS & STATE
 // ================================================================
 const STORE_KEY = 'fakao_zhenti_v2';
+const MUTI_KEY  = 'fakao_muti_v1';
 
 // 冲刺型遗忘曲线间隔（天）：等级0=当天, 1=1天, 2=3天, 3=5天, 4=7天, 5=已掌握
 const REVIEW_INTERVALS = [0, 1, 3, 5, 7, 999];
 const REVIEW_LABELS = ['重做', '1天后', '3天后', '5天后', '7天后', '已掌握'];
 
 let STORE = { version: 2, questions: [], records: {}, dailyLog: {}, settings: { theme: 'auto', fontSize: 'medium' } };
+let MUTI_STORE = { version: 1, questions: [], records: {}, dailyLog: {} };
+let ACTIVE_STORE = STORE; // 当前活跃的题库指针（切换真金题/母题）
 let CURRENT_SUBJECT = null, CURRENT_FILTER = 'all', WRONG_FILTER = 'all';
 let QUIZ_QUESTIONS = [], QUIZ_INDEX = 0, QUIZ_SELECTED = [], QUIZ_SUBMITTED = false;
 let QUIZ_RESULT = { correct: 0, wrong: 0 };
@@ -376,9 +388,13 @@ const SUBJECTS = {
 // ================================================================
 function loadStore(){
   try{const d=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');if(d.version)STORE=d;}catch(e){}
+  try{const m=JSON.parse(localStorage.getItem(MUTI_KEY)||'{}');if(m.version)MUTI_STORE=m;}catch(e){}
+  ACTIVE_STORE = STORE;
   applySettings();
 }
 function saveStore(){localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}
+function saveMutiStore(){localStorage.setItem(MUTI_KEY,JSON.stringify(MUTI_STORE));}
+function saveActiveStore(){if(ACTIVE_STORE===MUTI_STORE)saveMutiStore();else saveStore();}
 
 function applySettings(){
   const s=STORE.settings,root=document.documentElement;
@@ -399,13 +415,13 @@ function todayStr(){
 //  SPACED REPETITION ENGINE
 // ================================================================
 function getReviewRecord(qid){
-  if(!STORE.records[qid]) STORE.records[qid]={attempts:0,correct:0,lastAnswer:[],lastResult:false,unsureOpts:[],wrongCount:0,reviewLevel:0,nextReview:null,consecutiveCorrect:0};
-  return STORE.records[qid];
+  if(!ACTIVE_STORE.records[qid]) ACTIVE_STORE.records[qid]={attempts:0,correct:0,lastAnswer:[],lastResult:false,unsureOpts:[],wrongCount:0,reviewLevel:0,nextReview:null,consecutiveCorrect:0};
+  return ACTIVE_STORE.records[qid];
 }
 
 // 判断题目今天是否应该复习
 function isDueToday(qid){
-  const rec = STORE.records[qid];
+  const rec = ACTIVE_STORE.records[qid];
   if(!rec) return true; // 新题
   if(rec.reviewLevel >= 5) return false; // 已掌握
   if(!rec.nextReview) return true; // 没有下次复习日期
@@ -431,7 +447,7 @@ function updateReviewLevel(qid, isCorrect){
     rec.reviewLevel = 0; // 直接降回重做
     rec.nextReview = todayStr(); // 今天重做
   }
-  saveStore();
+  saveActiveStore();
 }
 
 function addDays(dateStr, days){
@@ -443,7 +459,7 @@ function addDays(dateStr, days){
 
 // 获取今日待复习题目
 function getDueQuestions(subjectKey){
-  return STORE.questions.filter(q => {
+  return ACTIVE_STORE.questions.filter(q => {
     if(subjectKey && q.subject !== subjectKey) return false;
     return isDueToday(q.id);
   });
@@ -454,10 +470,10 @@ function getWeekSchedule(subjectKey){
   const schedule = [];
   for(let i = 0; i <= 6; i++){
     const date = addDays(todayStr(), i);
-    const qs = STORE.questions.filter(q => {
+    const qs = ACTIVE_STORE.questions.filter(q => {
       if(subjectKey && q.subject !== subjectKey) return false;
-      if(!STORE.records[q.id]) return i === 0; // 新题归入今天
-      const rec = STORE.records[q.id];
+      if(!ACTIVE_STORE.records[q.id]) return i === 0; // 新题归入今天
+      const rec = ACTIVE_STORE.records[q.id];
       if(rec.reviewLevel >= 5) return false;
       return rec.nextReview === date;
     });
@@ -469,10 +485,10 @@ function getWeekSchedule(subjectKey){
 // 记录每日做题
 function logDaily(count, correct){
   const today = todayStr();
-  if(!STORE.dailyLog[today]) STORE.dailyLog[today] = { count: 0, correct: 0 };
-  STORE.dailyLog[today].count += count;
-  STORE.dailyLog[today].correct += correct;
-  saveStore();
+  if(!ACTIVE_STORE.dailyLog[today]) ACTIVE_STORE.dailyLog[today] = { count: 0, correct: 0 };
+  ACTIVE_STORE.dailyLog[today].count += count;
+  ACTIVE_STORE.dailyLog[today].correct += correct;
+  saveActiveStore();
 }
 
 // ================================================================
@@ -483,7 +499,7 @@ function switchTab(tab){
   document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+tab).classList.add('active');
-  if(tab==='home')renderHome();
+  if(tab==='home'){ACTIVE_STORE=STORE;renderHome();}
   if(tab==='review')renderReview();
   if(tab==='wrong')renderWrong();
   if(tab==='stats')renderStats();
@@ -496,7 +512,26 @@ function goHome(){switchTab('home');}
 // ================================================================
 function renderHome(){
   const body=document.getElementById('home-body');
-  let html='<div class="subject-grid">';
+  // 母题题库横幅入口
+  const mutiTotal=MUTI_STORE.questions.length;
+  const mutiAttempted=Object.keys(MUTI_STORE.records).filter(id=>MUTI_STORE.records[id]&&MUTI_STORE.records[id].attempts>0).length;
+  let mutiAcc=0,mutiAtt=0,mutiCor=0;
+  Object.values(MUTI_STORE.records).forEach(r=>{if(r){mutiAtt+=r.attempts;mutiCor+=r.correct;}});
+  mutiAcc=mutiAtt>0?Math.round(mutiCor/mutiAtt*100):0;
+  let html=`<div class="muti-banner" onclick="enterMutiHome()">
+    <div class="muti-banner-left">
+      <div class="muti-banner-title">⭐ 母题精选</div>
+      <div class="muti-banner-sub">7科 × 25题 · 核心母题</div>
+    </div>
+    <div class="muti-banner-right">
+      <div class="muti-banner-stat"><span>${mutiTotal}</span>题</div>
+      <div class="muti-banner-stat"><span>${mutiAttempted}</span>已做</div>
+      <div class="muti-banner-stat"><span>${mutiAcc}%</span>正确率</div>
+    </div>
+    <div class="muti-banner-arrow">›</div>
+  </div>`;
+  html+='<div style="padding:4px 12px 0;font-size:13px;font-weight:700;color:var(--text3)">📚 真金题</div>';
+  html+='<div class="subject-grid">';
   for(const[key,subj]of Object.entries(SUBJECTS)){
     const qs=STORE.questions.filter(q=>q.subject===key);
     const total=qs.length;
@@ -525,9 +560,73 @@ function renderHome(){
 }
 
 // ================================================================
+//  MUTI HOME (母题题库 - 独立题库)
+// ================================================================
+function enterMutiHome(){
+  // 如果母题题库为空，提示先加载
+  if(MUTI_STORE.questions.length===0){
+    if(confirm('母题题库为空，是否立即加载？')){loadMutiQuestions();}
+    return;
+  }
+  ACTIVE_STORE=MUTI_STORE;
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-chapters').classList.add('active');
+  document.getElementById('ch-subject-title').textContent='⭐ 母题题库';
+  // 渲染母题7科列表
+  renderMutiSubjects();
+}
+
+function renderMutiSubjects(){
+  const body=document.getElementById('chapters-body');
+  // 收集母题中有的科目
+  const mutiSubjects={};
+  for(const[key,subj]of Object.entries(SUBJECTS)){
+    const qs=MUTI_STORE.questions.filter(q=>q.subject===key);
+    if(qs.length>0)mutiSubjects[key]={...subj,count:qs.length};
+  }
+  const keys=Object.keys(mutiSubjects);
+  if(keys.length===0){body.innerHTML='<div class="empty-state"><div class="es-icon">⭐</div><div class="es-text">母题题库为空</div></div>';return;}
+  let html='<div style="padding:12px 16px 4px;font-size:12px;color:var(--text3)">选择科目进入母题练习 · 共 '+MUTI_STORE.questions.length+' 题</div>';
+  html+='<div class="subject-grid">';
+  keys.forEach(key=>{
+    const subj=mutiSubjects[key];
+    const qs=MUTI_STORE.questions.filter(q=>q.subject===key);
+    const attempted=qs.filter(q=>MUTI_STORE.records[q.id]&&MUTI_STORE.records[q.id].attempts>0).length;
+    let att=0,cor=0;
+    qs.forEach(q=>{const r=MUTI_STORE.records[q.id];if(r){att+=r.attempts;cor+=r.correct;}});
+    const acc=att>0?Math.round(cor/att*100):0;
+    const pct=subj.count>0?Math.round(attempted/subj.count*100):0;
+    html+=`<div class="subject-card" onclick="enterMutiSubject('${key}')">
+      <div class="s-name">${subj.name}</div>
+      <div class="s-stats">
+        <div class="s-stat"><span>题数</span><span class="val">${subj.count}</span></div>
+        <div class="s-stat"><span>已做</span><span class="val" style="color:var(--accent)">${attempted}</span></div>
+        <div class="s-stat"><span>正确率</span><span class="val">${acc}%</span></div>
+      </div>
+      <div class="s-bar"><div class="s-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+  html+='</div>';
+  // 返回按钮
+  html=`<div style="padding:12px 16px"><button class="setting-btn" style="background:var(--surface3);color:var(--text);border:none;width:100%" onclick="goHome()">← 返回真金题首页</button></div>`+html;
+  body.innerHTML=html;
+}
+
+function enterMutiSubject(key){
+  ACTIVE_STORE=MUTI_STORE;
+  CURRENT_SUBJECT=key;CURRENT_FILTER='all';
+  document.querySelectorAll('#ch-filter .filter-chip').forEach(c=>c.classList.remove('active'));
+  document.querySelector('#ch-filter .filter-chip[data-filter="all"]').classList.add('active');
+  document.getElementById('ch-subject-title').textContent='⭐ '+SUBJECTS[key].name+'母题';
+  renderChapters();
+}
+
+// ================================================================
 //  CHAPTERS
 // ================================================================
 function enterSubject(key){
+  ACTIVE_STORE=STORE;
   CURRENT_SUBJECT=key;CURRENT_FILTER='all';
   document.querySelectorAll('#ch-filter .filter-chip').forEach(c=>c.classList.remove('active'));
   document.querySelector('#ch-filter .filter-chip[data-filter="all"]').classList.add('active');
@@ -540,7 +639,7 @@ function enterSubject(key){
 function setFilter(el,f){document.querySelectorAll('#ch-filter .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');CURRENT_FILTER=f;renderChapters();}
 
 function getChapters(subjectKey,filter){
-  let qs=STORE.questions.filter(q=>q.subject===subjectKey);
+  let qs=ACTIVE_STORE.questions.filter(q=>q.subject===subjectKey);
   if(filter&&filter!=='all')qs=qs.filter(q=>q.type===filter);
   const chapters={};qs.forEach(q=>{const ch=q.chapter||'未分类';if(!chapters[ch])chapters[ch]=[];chapters[ch].push(q);});
   return chapters;
@@ -555,8 +654,8 @@ function renderChapters(){
   const total=keys.reduce((s,k)=>s+chapters[k].length,0);
   html+=`<button class="full-random-btn" onclick="startQuiz({mode:'random',subject:'${CURRENT_SUBJECT}',chapter:null,filter:'${CURRENT_FILTER}'})">🎲 全书随机 (${total} 题)</button>`;
   keys.forEach(ch=>{
-    const qs=chapters[ch];const done=qs.filter(q=>STORE.records[q.id]&&STORE.records[q.id].attempts>0).length;
-    let correct=0,attempts=0;qs.forEach(q=>{const r=STORE.records[q.id];if(r){attempts+=r.attempts;correct+=r.correct;}});
+    const qs=chapters[ch];const done=qs.filter(q=>ACTIVE_STORE.records[q.id]&&ACTIVE_STORE.records[q.id].attempts>0).length;
+    let correct=0,attempts=0;qs.forEach(q=>{const r=ACTIVE_STORE.records[q.id];if(r){attempts+=r.attempts;correct+=r.correct;}});
     const acc=attempts>0?Math.round(correct/attempts*100):0;
     html+=`<div class="chapter-item"><div class="ch-name">${escHtml(ch)}</div>
       <div class="ch-stats"><span>题数 <span class="val">${qs.length}</span></span><span>已做 <span class="val">${done}</span></span><span>正确率 <span class="val">${acc}%</span></span></div>
@@ -578,8 +677,10 @@ function exitQuiz(){
     if(!confirm('正在答题中，确定退出吗？当前进度不会保存。'))return;
   }
   // Return to chapter list (previous level), not main menu
+  const wasMuti=(ACTIVE_STORE===MUTI_STORE);
   if(lastQuizConfig&&lastQuizConfig.subject){
-    enterSubject(lastQuizConfig.subject);
+    if(wasMuti)enterMutiSubject(lastQuizConfig.subject);
+    else enterSubject(lastQuizConfig.subject);
   }else{
     goHome();
   }
@@ -596,13 +697,13 @@ function searchQuestion(){
   if(!input)return;
   let q;
   if(input==='diagram'||input==='图'||input==='配图'){
-    q=STORE.questions.find(q=>q.diagrams&&q.diagrams.length>0);
+    q=ACTIVE_STORE.questions.find(q=>q.diagrams&&q.diagrams.length>0);
     if(!q){alert('没有找到有配图的题目');return;}
   }else{
     // 优先精确匹配ID，再匹配source
-    q=STORE.questions.find(q=>q.id===input)||STORE.questions.find(q=>q.source===input||q.source.includes(input));
+    q=ACTIVE_STORE.questions.find(q=>q.id===input)||ACTIVE_STORE.questions.find(q=>q.source===input||q.source.includes(input));
   }
-  if(!q){alert('未找到题目：'+input+'\n当前题库共'+STORE.questions.length+'题');return;}
+  if(!q){alert('未找到题目：'+input+'\n当前题库共'+ACTIVE_STORE.questions.length+'题');return;}
   QUIZ_QUESTIONS=[q];QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0,total:1};
   document.getElementById('screen-quiz').classList.add('active');
   renderQuestion();
@@ -658,7 +759,7 @@ async function syncFromServer(){
   }
 }
 
-// Load 母题题库 (175 questions from 7 subjects)
+// Load 母题题库 (175 questions from 7 subjects) - 加载到独立的 MUTI_STORE
 async function loadMutiQuestions(){
   const btn=event?event.target:null;
   if(btn){btn.textContent='加载中...';btn.disabled=true;}
@@ -684,21 +785,22 @@ async function loadMutiQuestions(){
         diagrams:item.diagrams||[],
       };
       if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
-        const existing=STORE.questions.find(e=>e.id===q.id);
+        const existing=MUTI_STORE.questions.find(e=>e.id===q.id);
         if(existing){
           Object.assign(existing,q);
           updateCount++;
         }else{
-          STORE.questions.push(q);
+          MUTI_STORE.questions.push(q);
           newCount++;
         }
       }
     });
-    saveStore();
-    const msg=`✅ 母题题库加载完成！\n新增 ${newCount} 道题\n更新 ${updateCount} 道题内容\n当前共 ${STORE.questions.length} 题`;
+    saveMutiStore();
+    const msg=`✅ 母题题库加载完成！\n新增 ${newCount} 道题\n更新 ${updateCount} 道题内容\n当前共 ${MUTI_STORE.questions.length} 题`;
     alert(msg);
     if(btn){btn.textContent='⭐ 加载母题题库 (175题)';btn.disabled=false;}
     renderSettings();
+    renderHome();
   }catch(e){
     alert('❌ 加载失败：'+e.message);
     if(btn){btn.textContent='⭐ 加载母题题库 (175题)';btn.disabled=false;}
@@ -711,7 +813,7 @@ async function loadMutiQuestions(){
 function startQuiz(config){
   lastQuizConfig=config;
   const{mode,subject,chapter,filter,isReview}=config;
-  let pool=STORE.questions.filter(q=>q.subject===subject);
+  let pool=ACTIVE_STORE.questions.filter(q=>q.subject===subject);
   if(chapter)pool=pool.filter(q=>q.chapter===chapter);
   if(filter&&filter!=='all')pool=pool.filter(q=>q.type===filter);
   if(isReview)pool=pool.filter(q=>isDueToday(q.id));
@@ -719,23 +821,23 @@ function startQuiz(config){
 
   // Random mode: prioritize questions never attempted (attempts===0)
   if(mode==='random'){
-    const unseen=pool.filter(q=>{const r=STORE.records[q.id];return !r||r.attempts===0;});
+    const unseen=pool.filter(q=>{const r=ACTIVE_STORE.records[q.id];return !r||r.attempts===0;});
     if(unseen.length>0){
       pool=unseen;
       showToast('📝 还有 '+unseen.length+' 题未做过');
     }else{
       // All questions have been attempted at least once
       if(confirm('本范围所有题目都已至少做过一遍！\n是否清零重新开始？（正确率等统计将归零）')){
-        pool.forEach(q=>{delete STORE.records[q.id];});
-        saveStore();
+        pool.forEach(q=>{delete ACTIVE_STORE.records[q.id];});
+        saveActiveStore();
         showToast('🔄 已清零，重新开始');
-        pool=pool.filter(q=>{const r=STORE.records[q.id];return !r||r.attempts===0;});
+        pool=pool.filter(q=>{const r=ACTIVE_STORE.records[q.id];return !r||r.attempts===0;});
       }
       // else: continue with full pool for review
     }
     pool.sort(()=>Math.random()-.5);
   }else if(mode==='unseen'){
-    pool=pool.filter(q=>{const r=STORE.records[q.id];return !r||r.attempts===0;});
+    pool=pool.filter(q=>{const r=ACTIVE_STORE.records[q.id];return !r||r.attempts===0;});
     if(pool.length===0){alert('所有题目都已至少做过一次！');return;}
     pool.sort(()=>Math.random()-.5);
   }else if(mode==='wrong'||mode==='review'){
@@ -764,7 +866,7 @@ function renderQuestion(){
   const answerHint=qType!=='single'?`<span class="q-answer-hint" onclick="this.classList.toggle('revealed');this.querySelector('.hint-num').textContent=this.classList.contains('revealed')?'${q.ans.length}':'?'">本题 <span class="hint-num">?</span> 选</span>`:'';
 
   // Review level dots
-  const rec=STORE.records[q.id];
+  const rec=ACTIVE_STORE.records[q.id];
   const level=rec?rec.reviewLevel:0;
   let dotsHtml='<div class="q-review-dots">';
   for(let i=0;i<5;i++){dotsHtml+=`<div class="q-review-dot${i<level?(level>=5?' max':' filled'):''}"></div>`;}
@@ -816,7 +918,7 @@ function toggleUnsure(btn,letter){
   if(!rec.unsureOpts)rec.unsureOpts=[];
   if(btn.classList.contains('active')){if(!rec.unsureOpts.includes(letter))rec.unsureOpts.push(letter);}
   else{rec.unsureOpts=rec.unsureOpts.filter(u=>u!==letter);}
-  saveStore();
+  saveActiveStore();
 }
 
 function submitAnswer(){
@@ -849,7 +951,7 @@ function submitAnswer(){
   expEl.classList.add('show');
 
   // Update review indicator
-  const newLevel=STORE.records[q.id].reviewLevel;
+  const newLevel=ACTIVE_STORE.records[q.id].reviewLevel;
   const ri=document.querySelector('.q-review-indicator');
   if(ri){
     let dots='<div class="q-review-dots">';
@@ -896,9 +998,9 @@ function closeSummary(){document.getElementById('summaryModal').classList.remove
 function renderReview(){
   const body=document.getElementById('review-body');
   const dueAll=getDueQuestions(null);
-  const totalQs=STORE.questions.length;
-  const mastered=STORE.questions.filter(q=>STORE.records[q.id]&&STORE.records[q.id].reviewLevel>=5).length;
-  const unseen=STORE.questions.filter(q=>!STORE.records[q.id]).length;
+  const totalQs=ACTIVE_STORE.questions.length;
+  const mastered=ACTIVE_STORE.questions.filter(q=>ACTIVE_STORE.records[q.id]&&ACTIVE_STORE.records[q.id].reviewLevel>=5).length;
+  const unseen=ACTIVE_STORE.questions.filter(q=>!ACTIVE_STORE.records[q.id]).length;
   const inProgress=totalQs-mastered-unseen;
 
   // Subject breakdown
@@ -917,10 +1019,10 @@ function renderReview(){
   });
 
   // Daily log (last 7 days)
-  const logDates=Object.keys(STORE.dailyLog).sort().reverse().slice(0,7);
+  const logDates=Object.keys(ACTIVE_STORE.dailyLog).sort().reverse().slice(0,7);
   let logHtml='';
   logDates.forEach(d=>{
-    const entry=STORE.dailyLog[d];
+    const entry=ACTIVE_STORE.dailyLog[d];
     const acc=entry.count>0?Math.round(entry.correct/entry.count*100):0;
     logHtml+=`<div class="daily-item"><span class="di-date">${d.slice(5)}</span><span class="di-info">${entry.count}题 · 正确${entry.correct}</span><span class="di-count">${acc}%</span></div>`;
   });
@@ -968,8 +1070,8 @@ function setWrongFilter(el,f){document.querySelectorAll('#wrong-filters .filter-
 function renderWrong(){
   const body=document.getElementById('wrong-body');
   const wrongQs=[];
-  STORE.questions.forEach(q=>{
-    const r=STORE.records[q.id];if(!r)return;
+  ACTIVE_STORE.questions.forEach(q=>{
+    const r=ACTIVE_STORE.records[q.id];if(!r)return;
     if(WRONG_FILTER==='unsure'){if(r.unsureOpts&&r.unsureOpts.length>0)wrongQs.push({q,r});}
     else{if(r.wrongCount>0)wrongQs.push({q,r});}
   });
@@ -990,9 +1092,9 @@ function renderWrong(){
 // ================================================================
 function renderStats(){
   const body=document.getElementById('stats-body');
-  let totalAttempts=0,totalCorrect=0,totalQs=STORE.questions.length;
+  let totalAttempts=0,totalCorrect=0,totalQs=ACTIVE_STORE.questions.length;
   let attempted=0;
-  STORE.questions.forEach(q=>{const r=STORE.records[q.id];if(r){totalAttempts+=r.attempts;totalCorrect+=r.correct;if(r.attempts>0)attempted++;}});
+  ACTIVE_STORE.questions.forEach(q=>{const r=ACTIVE_STORE.records[q.id];if(r){totalAttempts+=r.attempts;totalCorrect+=r.correct;if(r.attempts>0)attempted++;}});
   const acc=totalAttempts>0?Math.round(totalCorrect/totalAttempts*100):0;
   const completion=totalQs>0?Math.round(attempted/totalQs*100):0;
 
@@ -1007,9 +1109,9 @@ function renderStats(){
   html+='<div class="stats-section"><div class="stats-section-title">各科进度</div><table class="stats-table"><thead><tr><th>科目</th><th>总题数</th><th>累计已做</th><th>完成率</th><th>正确率</th></tr></thead><tbody>';
   let tTotal=0,tDone=0,tAtt=0,tCor=0;
   for(const[key,subj]of Object.entries(SUBJECTS)){
-    const qs=STORE.questions.filter(q=>q.subject===key);if(qs.length===0)continue;
+    const qs=ACTIVE_STORE.questions.filter(q=>q.subject===key);if(qs.length===0)continue;
     let sAtt=0,sCor=0,sDone=0;
-    qs.forEach(q=>{const r=STORE.records[q.id];if(r){sAtt+=r.attempts;sCor+=r.correct;if(r.attempts>0)sDone++;}});
+    qs.forEach(q=>{const r=ACTIVE_STORE.records[q.id];if(r){sAtt+=r.attempts;sCor+=r.correct;if(r.attempts>0)sDone++;}});
     const sAcc=sAtt>0?Math.round(sCor/sAtt*100):0;
     const sComp=qs.length>0?Math.round(sDone/qs.length*100):0;
     tTotal+=qs.length;tDone+=sDone;tAtt+=sAtt;tCor+=sCor;
@@ -1026,19 +1128,19 @@ function renderStats(){
   html+='<select id="weak-subject-select" onchange="renderWeakChapters(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px">';
   html+='<option value="all">全部科目</option>';
   for(const[key,subj]of Object.entries(SUBJECTS)){
-    const qs=STORE.questions.filter(q=>q.subject===key);
+    const qs=ACTIVE_STORE.questions.filter(q=>q.subject===key);
     if(qs.length>0)html+=`<option value="${key}">${subj.name}</option>`;
   }
   html+='</select></div>';
   html+='<div id="weak-chapters-content"></div></div>';
 
   // Daily log chart
-  const logDates=Object.keys(STORE.dailyLog).sort().slice(-14);
+  const logDates=Object.keys(ACTIVE_STORE.dailyLog).sort().slice(-14);
   if(logDates.length>0){
     html+='<div class="stats-section"><div class="stats-section-title"> 每日做题趋势</div><div class="bar-chart">';
-    const maxCount=Math.max(...logDates.map(d=>STORE.dailyLog[d].count));
+    const maxCount=Math.max(...logDates.map(d=>ACTIVE_STORE.dailyLog[d].count));
     logDates.forEach(d=>{
-      const entry=STORE.dailyLog[d];
+      const entry=ACTIVE_STORE.dailyLog[d];
       const pct=maxCount>0?Math.round(entry.count/maxCount*100):0;
       const acc=entry.count>0?Math.round(entry.correct/entry.count*100):0;
       html+=`<div class="bar-row"><div class="bar-label">${d.slice(5)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)"></div></div><div class="bar-val">${entry.count}题 ${acc}%</div></div>`;
@@ -1054,14 +1156,14 @@ function renderStats(){
 function renderWeakChapters(subjectFilter){
   const container=document.getElementById('weak-chapters-content');
   if(!container)return;
-  const qs=subjectFilter==='all'?STORE.questions:STORE.questions.filter(q=>q.subject===subjectFilter);
+  const qs=subjectFilter==='all'?ACTIVE_STORE.questions:ACTIVE_STORE.questions.filter(q=>q.subject===subjectFilter);
   const chapterStats={};
   qs.forEach(q=>{
     const ch=q.chapter||'未分类';
     const sub=q.subject;
     const key=subjectFilter==='all'?sub+'|||'+ch:ch;
     if(!chapterStats[key])chapterStats[key]={chapter:ch,subject:sub,attempts:0,correct:0};
-    const r=STORE.records[q.id];
+    const r=ACTIVE_STORE.records[q.id];
     if(r){chapterStats[key].attempts+=r.attempts;chapterStats[key].correct+=r.correct;}
   });
   const weakChapters=Object.values(chapterStats)
@@ -1106,8 +1208,8 @@ function renderSettings(){
       <div class="setting-item" onclick="cycleFontSize()"><span class="si-label">字体大小</span><span class="si-value">${fsLabel} →</span></div>
     </div>
     <div class="setting-group"><div class="setting-group-title">数据</div>
-      <button class="setting-btn" style="background:var(--accent);color:#fff;border:none" onclick="syncFromServer()">🔄 从服务器同步题库</button>
-      <button class="setting-btn" style="background:#8b5cf6;color:#fff;border:none" onclick="loadMutiQuestions()">⭐ 加载母题题库 (175题)</button>
+      <button class="setting-btn" style="background:var(--accent);color:#fff;border:none" onclick="syncFromServer()">🔄 从服务器同步真金题</button>
+      <button class="setting-btn" style="background:#8b5cf6;color:#fff;border:none" onclick="loadMutiQuestions()">⭐ 更新母题题库 (${MUTI_STORE.questions.length}题)</button>
       <button class="setting-btn" onclick="exportData()">📤 导出 JSON 备份</button>
       <button class="setting-btn" onclick="document.getElementById('jsonFileInput').click()">📥 导入 JSON 题库</button>
       <button class="setting-btn danger" onclick="clearData()">🗑 清空所有数据</button>
@@ -1115,7 +1217,8 @@ function renderSettings(){
     <div class="setting-group"><div class="setting-group-title">关于</div>
       <div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text3)">
         法考真金题 v2.0（冲刺版）<br>
-        题库：${STORE.questions.length} 题 · 已掌握：${mastered} 题<br>
+        真金题：${STORE.questions.length} 题 · 已掌握：${mastered} 题<br>
+        母题精选：${MUTI_STORE.questions.length} 题（独立题库）<br>
         复习算法：艾宾浩斯遗忘曲线（14天冲刺）
       </div>
     </div>`;
@@ -1134,9 +1237,11 @@ function cycleFontSize(){
 //  IMPORT / EXPORT
 // ================================================================
 function exportData(){
-  const blob=new Blob([JSON.stringify(STORE,null,2)],{type:'application/json'});
+  // Export both stores in one backup file
+  const backup=JSON.stringify({zhenti:STORE,muti:MUTI_STORE,exportDate:todayStr()},null,2);
+  const blob=new Blob([backup],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='法考真金题_备份_'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download='法考题库备份_'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
 }
 
 function handleJSONFile(event){
@@ -1145,8 +1250,15 @@ function handleJSONFile(event){
   reader.onload=function(e){
     try{
       const data=JSON.parse(e.target.result);
-      const imported=data.questions||[];
-      if(imported.length===0){alert(' JSON 文件中没有找到题目！');return;}
+      // Support new backup format {zhenti:..., muti:...} and old format {questions:[...]}
+      let imported=[], mutiImported=[];
+      if(data.zhenti&&data.zhenti.questions){
+        imported=data.zhenti.questions||[];
+        mutiImported=(data.muti&&data.muti.questions)||[];
+      }else{
+        imported=data.questions||[];
+      }
+      if(imported.length===0&&mutiImported.length===0){alert('❌ JSON 文件中没有找到题目！');return;}
       let count=0;
       imported.forEach(item=>{
         let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
@@ -1165,8 +1277,31 @@ function handleJSONFile(event){
           if(!STORE.questions.find(existing=>existing.id===q.id)){STORE.questions.push(q);count++;}
         }
       });
-      if(count>0){saveStore();alert('✅ 成功导入 '+count+' 道题！');switchTab('home');}
-      else{alert('❌ 未能识别有效题目！');}
+      // Import muti questions if present
+      let mutiCount=0;
+      mutiImported.forEach(item=>{
+        let ans=item.ans||item.answer||[];if(typeof ans==='string')ans=ans.split('');
+        const q={
+          id:item.id||('muti_imp_'+Date.now()+'_'+mutiCount),
+          subject:item.subject||detectSubject(item),
+          book:item.book||'母题精选',chapter:item.chapter||'母题',
+          year:item.year||2026,source:item.source||'母题',
+          type:item.type||(ans.length>1?'multi':'single'),
+          answerCount:ans.length,q:item.q||item.question||'',
+          opts:item.opts||item.options||{},ans:ans,
+          exp:item.exp||item.explanation||'',
+          keypoints:item.keypoints||[],difficulty:item.difficulty||null,page:item.page||null,
+          diagrams:item.diagrams||[],
+        };
+        if(q.q&&Object.keys(q.opts).length>=2&&q.ans.length>0){
+          if(!MUTI_STORE.questions.find(existing=>existing.id===q.id)){MUTI_STORE.questions.push(q);mutiCount++;}
+        }
+      });
+      if(count>0||mutiCount>0){
+        saveStore();saveMutiStore();
+        alert('✅ 成功导入！\n真金题：'+count+' 道\n母题：'+mutiCount+' 道');
+        switchTab('home');
+      }else{alert('❌ 未能识别有效题目！');}
     }catch(err){alert('❌ JSON 解析失败：'+err.message);}
   };
   reader.readAsText(file);event.target.value='';
@@ -1184,8 +1319,10 @@ function detectSubject(item){
 function clearData(){
   if(confirm('⚠️ 确定清空所有题目和答题记录？此操作不可撤销！')){
     if(confirm('再次确认：清空所有数据？')){
-      STORE={version:2,questions:[],records:{},dailyLog:{},settings:STORE.settings};
-      saveStore();switchTab('home');
+      const savedSettings=STORE.settings;
+      STORE={version:2,questions:[],records:{},dailyLog:{},settings:savedSettings};
+      MUTI_STORE={version:1,questions:[],records:{},dailyLog:{}};
+      saveStore();saveMutiStore();switchTab('home');
     }
   }
 }
