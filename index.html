@@ -452,10 +452,17 @@ function getReviewRecord(qid){
 // 判断题目今天是否应该复习
 function isDueToday(qid){
   const rec = ACTIVE_STORE.records[qid];
-  if(!rec) return true; // 新题
+  if(!rec) return false; // 新题不算"今日待复习"
+  if(rec.attempts === 0) return false; // 未做过的不算
   if(rec.reviewLevel >= 5) return false; // 已掌握
   if(!rec.nextReview) return true; // 没有下次复习日期
   return rec.nextReview <= todayStr();
+}
+
+// 判断是否是未做过的新题
+function isNewQuestion(qid){
+  const rec = ACTIVE_STORE.records[qid];
+  return !rec || rec.attempts === 0;
 }
 
 // 更新复习等级（答对/答错后调用）
@@ -487,7 +494,7 @@ function addDays(dateStr, days){
   return d.toISOString().slice(0,10);
 }
 
-// 获取今日待复习题目
+// 获取今日待复习题目（只含已做过的）
 function getDueQuestions(subjectKey){
   return ACTIVE_STORE.questions.filter(q => {
     if(subjectKey && q.subject !== subjectKey) return false;
@@ -495,14 +502,23 @@ function getDueQuestions(subjectKey){
   });
 }
 
-// 获取未来7天复习计划
+// 获取新题（从未做过的）
+function getNewQuestions(subjectKey){
+  return ACTIVE_STORE.questions.filter(q => {
+    if(subjectKey && q.subject !== subjectKey) return false;
+    return isNewQuestion(q.id);
+  });
+}
+
+// 获取未来7天复习计划（只统计已做过的题目）
 function getWeekSchedule(subjectKey){
   const schedule = [];
   for(let i = 0; i <= 6; i++){
     const date = addDays(todayStr(), i);
     const qs = ACTIVE_STORE.questions.filter(q => {
       if(subjectKey && q.subject !== subjectKey) return false;
-      if(!ACTIVE_STORE.records[q.id]) return i === 0; // 新题归入今天
+      if(!ACTIVE_STORE.records[q.id]) return false; // 新题不计入复习计划
+      if(ACTIVE_STORE.records[q.id].attempts === 0) return false;
       const rec = ACTIVE_STORE.records[q.id];
       if(rec.reviewLevel >= 5) return false;
       return rec.nextReview === date;
@@ -1028,16 +1044,20 @@ function closeSummary(){document.getElementById('summaryModal').classList.remove
 function renderReview(){
   const body=document.getElementById('review-body');
   const dueAll=getDueQuestions(null);
+  const newAll=getNewQuestions(null);
   const totalQs=ACTIVE_STORE.questions.length;
   const mastered=ACTIVE_STORE.questions.filter(q=>ACTIVE_STORE.records[q.id]&&ACTIVE_STORE.records[q.id].reviewLevel>=5).length;
-  const unseen=ACTIVE_STORE.questions.filter(q=>!ACTIVE_STORE.records[q.id]).length;
+  const unseen=newAll.length;
   const inProgress=totalQs-mastered-unseen;
 
-  // Subject breakdown
-  let subjDue='';
+  // Subject breakdown for review
+  let subjReview='';
+  let subjNew='';
   for(const[key,subj]of Object.entries(SUBJECTS)){
-    const d=getDueQuestions(key).length;
-    if(d>0)subjDue+=`<span style="font-size:11px;padding:2px 6px;background:var(--surface3);border-radius:8px;margin:2px;display:inline-block">${subj.name}: ${d}</span>`;
+    const rd=getDueQuestions(key).length;
+    const rn=getNewQuestions(key).length;
+    if(rd>0)subjReview+=`<span style="font-size:11px;padding:2px 6px;background:var(--surface3);border-radius:8px;margin:2px;display:inline-block">${subj.name}: ${rd}</span>`;
+    if(rn>0)subjNew+=`<span style="font-size:11px;padding:2px 6px;background:var(--surface3);border-radius:8px;margin:2px;display:inline-block">${subj.name}: ${rn}</span>`;
   }
 
   const schedule=getWeekSchedule(null);
@@ -1060,16 +1080,25 @@ function renderReview(){
   body.innerHTML=`
     <div class="review-hero">
       <div class="rh-today">${dueAll.length}</div>
-      <div class="rh-label">今日待复习</div>
-      <div class="rh-sub">${subjDue||'全部完成 🎉'}</div>
+      <div class="rh-label">📅 今日待复习</div>
+      <div class="rh-sub">${subjReview||'暂无待复习 ✅'}</div>
       <button class="review-start-btn" onclick="startReviewSession()" ${dueAll.length===0?'disabled':''}>
-        ${dueAll.length>0?'🔥 开始今日复习':'✅ 今日已完成'}
+        ${dueAll.length>0?'🔥 开始复习 ('+dueAll.length+'题)':'✅ 暂无待复习'}
+      </button>
+    </div>
+    <div class="review-hero" style="margin-top:8px;background:var(--surface2);border:1px solid var(--border)">
+      <div class="rh-today" style="color:var(--accent)">${newAll.length}</div>
+      <div class="rh-label">📝 新题待做</div>
+      <div class="rh-sub">${subjNew||'全部已做 🎉'}</div>
+      <button class="review-start-btn" style="background:var(--accent)" onclick="startNewQuestionsSession()" ${newAll.length===0?'disabled':''}>
+        ${newAll.length>0?'🚀 开始做新题 ('+newAll.length+'题)':'✅ 全部已做'}
       </button>
     </div>
     <div class="review-stats-row">
       <div class="review-stat-card"><div class="rsc-val" style="color:var(--accent)">${totalQs}</div><div class="rsc-label">总题数</div></div>
       <div class="review-stat-card"><div class="rsc-val" style="color:var(--success)">${mastered}</div><div class="rsc-label">已掌握</div></div>
-      <div class="review-stat-card"><div class="rsc-val" style="color:var(--warning)">${unseen+inProgress}</div><div class="rsc-label">待掌握</div></div>
+      <div class="review-stat-card"><div class="rsc-val" style="color:var(--warning)">${inProgress}</div><div class="rsc-label">进行中</div></div>
+      <div class="review-stat-card"><div class="rsc-val" style="color:var(--text3)">${unseen}</div><div class="rsc-label">未开始</div></div>
     </div>
     <div class="review-schedule">
       <div class="review-schedule-title">📅 未来7天复习计划</div>
@@ -1080,12 +1109,25 @@ function renderReview(){
 }
 
 function startReviewSession(){
-  // 收集所有科目的待复习题
+  // 收集所有科目的待复习题（已做过且到期的）
   let due=getDueQuestions(null);
   if(due.length===0){alert('今日没有需要复习的题目！');return;}
   due.sort(()=>Math.random()-.5);
   QUIZ_QUESTIONS=due;QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0};
   lastQuizConfig={mode:'review',subject:null,chapter:null,filter:'all',isReview:true};
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-quiz').classList.add('active');
+  renderQuestion();
+}
+
+function startNewQuestionsSession(){
+  // 收集所有新题（从未做过的）
+  let newQs=getNewQuestions(null);
+  if(newQs.length===0){alert('没有新题了，全部已做！');return;}
+  newQs.sort(()=>Math.random()-.5);
+  QUIZ_QUESTIONS=newQs;QUIZ_INDEX=0;QUIZ_RESULT={correct:0,wrong:0};
+  lastQuizConfig={mode:'unseen',subject:null,chapter:null,filter:'all',isReview:false};
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-quiz').classList.add('active');
