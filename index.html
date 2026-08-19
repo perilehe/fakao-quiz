@@ -389,8 +389,38 @@ const SUBJECTS = {
 function loadStore(){
   try{const d=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');if(d.version)STORE=d;}catch(e){}
   try{const m=JSON.parse(localStorage.getItem(MUTI_KEY)||'{}');if(m.version)MUTI_STORE=m;}catch(e){}
+  // 自动迁移：把混在真金题STORE里的母题剥离到MUTI_STORE
+  migrateMutiFromZhenti();
   ACTIVE_STORE = STORE;
   applySettings();
+}
+
+// 迁移：把STORE中误入的母题（id含'-muti-'）搬到MUTI_STORE，保留做题记录
+function migrateMutiFromZhenti(){
+  const mutiQs=STORE.questions.filter(q=>q.id&&q.id.includes('-muti-'));
+  if(mutiQs.length===0)return;
+  let moved=0,migratedRecords=0;
+  mutiQs.forEach(q=>{
+    // 把题目搬到MUTI_STORE（去重）
+    if(!MUTI_STORE.questions.find(e=>e.id===q.id)){
+      MUTI_STORE.questions.push(q);
+      moved++;
+    }
+    // 把做题记录搬到MUTI_STORE
+    if(STORE.records[q.id]){
+      if(!MUTI_STORE.records[q.id]){
+        MUTI_STORE.records[q.id]={...STORE.records[q.id]};
+        migratedRecords++;
+      }
+      delete STORE.records[q.id];
+    }
+  });
+  // 一次性从STORE中移除所有母题
+  const mutiIds=new Set(mutiQs.map(q=>q.id));
+  STORE.questions=STORE.questions.filter(q=>!mutiIds.has(q.id));
+  saveStore();
+  saveMutiStore();
+  console.log(`🔄 母题迁移完成：移动 ${moved} 道题，迁移 ${migratedRecords} 条做题记录`);
 }
 function saveStore(){localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}
 function saveMutiStore(){localStorage.setItem(MUTI_KEY,JSON.stringify(MUTI_STORE));}
