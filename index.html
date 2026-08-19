@@ -1168,8 +1168,7 @@ function renderStats(){
       const tp=q.type||'single';
       if(typeStats[tp]){typeStats[tp].att+=r.attempts;typeStats[tp].cor+=r.correct;}
     });
-    let hasAny=Object.values(typeStats).some(s=>s.att>0);
-    if(!hasAny)continue;
+    // 显示所有科目，即使没有做题记录
     html+=`<tr><td>${subj.name}</td>`;
     TYPES.forEach(t=>{
       const s=typeStats[t.key];
